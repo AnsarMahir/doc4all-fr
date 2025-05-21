@@ -47,7 +47,7 @@ const RegistrationSection = ({ activeForm, toggleForm }) => {
       formDataToSubmit.append('certificate', formData.dispensaryLicense)
       
       // Send POST request to the backend
-      fetch('http://localhost:8080/register', {
+      fetch('http://localhost:8005/api/auth/register', {
         method: 'POST',
         body: formDataToSubmit,
       })
