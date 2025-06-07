@@ -1,6 +1,11 @@
 import { useState } from 'react'
 
-const LoginSection = ({ activeForm, toggleForm }) => {
+
+const LoginSection = ({
+  activeForm,
+  toggleForm,
+  openRegistrationModal   // ← add this prop
+}) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -17,41 +22,14 @@ const LoginSection = ({ activeForm, toggleForm }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('Login form submitted:', formData)
-    // Here you would typically authenticate the user
+    // …your authenticate logic…
   }
 
   return (
     <div className="py-6">
       <h2 className="text-2xl font-bold text-center mb-6">Log In</h2>
       
-      {/* Form Type Selector */}
-      <div className="flex justify-center mb-6">
-        <div className="inline-flex rounded-md shadow-sm" role="group">
-          <button
-            type="button"
-            className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
-              activeForm === 'patient-doctor'
-                ? 'bg-primary-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            } border border-gray-300`}
-            onClick={() => toggleForm('patient-doctor')}
-          >
-            Patient & Doctor
-          </button>
-          <button
-            type="button"
-            className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
-              activeForm === 'dispensary'
-                ? 'bg-primary-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            } border border-gray-300`}
-            onClick={() => toggleForm('dispensary')}
-          >
-            Dispensary
-          </button>
-        </div>
-      </div>
+      {/* Form Type Selector (removed earlier) */}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -101,7 +79,15 @@ const LoginSection = ({ activeForm, toggleForm }) => {
         </button>
         
         <p className="text-center text-sm text-gray-600 mt-4">
-          Don't have an account? <a href="#" className="text-primary-600 hover:underline">Sign up</a>
+          Don’t have an account?{' '}
+          {/* ↓ Replace <a href="#"> with a button (or <a> with onClick) ↓ */}
+          <button
+            type="button"
+            onClick={openRegistrationModal}
+            className="text-primary-600 hover:underline"
+          >
+            Sign up
+          </button>
         </p>
       </form>
     </div>

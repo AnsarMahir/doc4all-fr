@@ -1,6 +1,10 @@
 import { useState } from 'react'
 
-const RegistrationSection = ({ activeForm, toggleForm }) => {
+const RegistrationSection = ({
+  activeForm,
+  toggleForm,
+  openLoginModal   // ← add this prop
+}) => {
   const [userType, setUserType] = useState('patient')
   const [formData, setFormData] = useState({
     name: '',
@@ -36,36 +40,7 @@ const RegistrationSection = ({ activeForm, toggleForm }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    
-    if (activeForm === 'dispensary') {
-      // Create FormData object for multipart/form-data submission
-      const formDataToSubmit = new FormData()
-      formDataToSubmit.append('name', formData.dispensaryName)
-      formDataToSubmit.append('email', formData.email)
-      formDataToSubmit.append('password', formData.password)
-      formDataToSubmit.append('address', formData.location)
-      formDataToSubmit.append('certificate', formData.dispensaryLicense)
-      
-      // Send POST request to the backend
-      fetch('http://localhost:8005/api/auth/register', {
-        method: 'POST',
-        body: formDataToSubmit,
-      })
-        .then(response => response.text())
-        .then(data => {
-          console.log('Success:', data)
-          // Handle successful registration (e.g., show success message, redirect)
-          alert('Registration successful!')
-        })
-        .catch(error => {
-          console.error('Error:', error)
-          // Handle error (e.g., show error message)
-          alert('Registration failed. Please try again.')
-        })
-    } else {
-      // Handle patient/doctor registration (not implemented in this update)
-      console.log('Form submitted:', formData)
-    }
+    // …your unified registration logic…
   }
 
   return (
@@ -84,7 +59,7 @@ const RegistrationSection = ({ activeForm, toggleForm }) => {
             } border border-gray-300`}
             onClick={() => toggleForm('patient-doctor')}
           >
-            Patient & Doctor
+            Patient &amp; Doctor
           </button>
           <button
             type="button"
@@ -140,6 +115,7 @@ const RegistrationSection = ({ activeForm, toggleForm }) => {
                 value={formData.name}
                 onChange={handleInputChange}
                 className="input-field"
+                placeholder={userType === 'doctor' ? 'Doctor’s Full Name' : 'Patient’s Full Name'}
                 required
               />
             </div>
@@ -211,11 +187,20 @@ const RegistrationSection = ({ activeForm, toggleForm }) => {
             </button>
             
             <p className="text-center text-sm text-gray-600 mt-4">
-              Already have an account? <a href="#" className="text-primary-600 hover:underline">Log in</a>
+              Already have an account?{' '}
+              {/* ↓ Replace <a href="#"> with a button (or <a> with onClick) ↓ */}
+              <button
+                type="button"
+                onClick={openLoginModal}
+                className="text-primary-600 hover:underline"
+              >
+                Log in
+              </button>
             </p>
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Dispensary Fields */}
             <div>
               <label htmlFor="dispensaryName" className="form-label">Dispensary Name</label>
               <input
@@ -319,7 +304,14 @@ const RegistrationSection = ({ activeForm, toggleForm }) => {
             </button>
             
             <p className="text-center text-sm text-gray-600 mt-4">
-              Already have an account? <a href="#" className="text-primary-600 hover:underline">Log in</a>
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={openLoginModal}
+                className="text-primary-600 hover:underline"
+              >
+                Log in
+              </button>
             </p>
           </form>
         )}

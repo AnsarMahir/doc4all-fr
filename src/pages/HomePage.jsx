@@ -5,10 +5,10 @@ import HowItWorksSection from '../components/HowItWorksSection'
 import TestimonialsSection from '../components/TestimonialsSection'
 import FaqSection from '../components/FaqSection'
 
-const HomePage = ({ openRegistrationModal }) => {
+const HomePage = ({ openAuthModal }) => {
   return (
     <>
-      <Hero openRegistrationModal={openRegistrationModal} />
+      <Hero openAuthModal={openAuthModal} />
       <FeatureSection />
       <DisciplinesSection />
       <HowItWorksSection />

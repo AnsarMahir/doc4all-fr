@@ -1,102 +1,94 @@
+// Header.jsx - Enhanced version with better styling
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { FaBars, FaTimes, FaSearch, FaList } from 'react-icons/fa'
 
-const Header = ({ openLoginModal }) => {
+const Header = ({ openAuthModal }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen)
+  const navLinks = [
+    { path: '/', label: 'Home' },
+    { path: '/browse-dispensaries', label: 'Browse', icon: FaList },
+    { path: '/find-dispensaries', label: 'Find Nearby', icon: FaSearch }
+  ]
+
+  const handleMobileMenuClick = () => {
+    setIsMenuOpen(false)
+  }
+
+  const handleAuthClick = () => {
+    openAuthModal()
+    setIsMenuOpen(false)
   }
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold logo-text">Doc4All</Link>
-          </div>
+          <Link to="/" className="text-2xl font-bold text-primary-600 hover:text-primary-700 transition-colors">
+            Doc4All
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link 
-              to="/" 
-              className={`text-gray-700 hover:text-primary-600 font-medium ${location.pathname === '/' ? 'text-primary-600' : ''}`}
-            >
-              Home
-            </Link>
-            <Link 
-              to="/browse-dispensaries" 
-              className={`text-gray-700 hover:text-primary-600 font-medium ${location.pathname === '/browse-dispensaries' ? 'text-primary-600' : ''}`}
-            >
-              <span className="flex items-center">
-                <FaList className="mr-1" /> Browse
-              </span>
-            </Link>
-            <Link 
-              to="/find-dispensaries" 
-              className={`text-gray-700 hover:text-primary-600 font-medium ${location.pathname === '/find-dispensaries' ? 'text-primary-600' : ''}`}
-            >
-              <span className="flex items-center">
-                <FaSearch className="mr-1" /> Find Nearby
-              </span>
-            </Link>
+            {navLinks.map(({ path, label, icon: Icon }) => (
+              <Link
+                key={path}
+                to={path}
+                className={`flex items-center px-3 py-2 text-sm font-medium transition-colors ${
+                  location.pathname === path
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-700 hover:text-primary-600'
+                }`}
+              >
+                {Icon && <Icon className="mr-2 text-sm" />}
+                {label}
+              </Link>
+            ))}
             <button 
-              onClick={openLoginModal}
-              className="btn-primary"
+              onClick={openAuthModal} 
+              className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
             >
-              Login
+              Login / Sign Up
             </button>
           </nav>
 
           {/* Mobile Menu Button */}
           <button 
-            className="md:hidden text-gray-700 focus:outline-none" 
-            onClick={toggleMenu}
+            className="md:hidden p-2 rounded-md text-gray-700 hover:text-primary-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle menu"
           >
-            {isMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+            {isMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Menu */}
         {isMenuOpen && (
-          <nav className="md:hidden mt-4 pb-4">
-            <div className="flex flex-col space-y-4">
-              <Link 
-                to="/" 
-                className={`text-gray-700 hover:text-primary-600 font-medium py-2 ${location.pathname === '/' ? 'text-primary-600' : ''}`}
-                onClick={() => setIsMenuOpen(false)}
+          <nav className="md:hidden py-4 border-t border-gray-200">
+            <div className="space-y-2">
+              {navLinks.map(({ path, label, icon: Icon }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  onClick={handleMobileMenuClick}
+                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    location.pathname === path
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
+                  }`}
+                >
+                  {Icon && <Icon className="mr-3 text-sm" />}
+                  {label}
+                </Link>
+              ))}
+              <button
+                onClick={handleAuthClick}
+                className="w-full mt-4 bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
               >
-                Home
-              </Link>
-              <Link 
-                to="/browse-dispensaries" 
-                className={`text-gray-700 hover:text-primary-600 font-medium py-2 ${location.pathname === '/browse-dispensaries' ? 'text-primary-600' : ''}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <span className="flex items-center">
-                  <FaList className="mr-1" /> Browse
-                </span>
-              </Link>
-              <Link 
-                to="/find-dispensaries" 
-                className={`text-gray-700 hover:text-primary-600 font-medium py-2 ${location.pathname === '/find-dispensaries' ? 'text-primary-600' : ''}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <span className="flex items-center">
-                  <FaSearch className="mr-1" /> Find Nearby
-                </span>
-              </Link>
-              <button 
-                onClick={() => {
-                  openLoginModal()
-                  setIsMenuOpen(false)
-                }}
-                className="btn-primary w-full"
-              >
-                Login
+                Login / Sign Up
               </button>
             </div>
           </nav>

@@ -1,4 +1,5 @@
-const Hero = ({ openRegistrationModal }) => {
+// src/components/Hero.jsx
+const Hero = ({ openAuthModal }) => {
   return (
     <section className="hero-image py-20 md:py-32">
       <div className="container mx-auto px-4">
@@ -10,7 +11,7 @@ const Hero = ({ openRegistrationModal }) => {
             Connect with healthcare professionals and dispensaries in your area for quick and convenient appointments.
           </p>
           <button 
-            onClick={openRegistrationModal}
+            onClick={openAuthModal}
             className="btn-primary text-lg px-8 py-3"
           >
             Get Started
