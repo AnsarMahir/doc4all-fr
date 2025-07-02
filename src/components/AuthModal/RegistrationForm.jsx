@@ -56,39 +56,43 @@ const RegistrationForm = ({ switchToLogin, closeModal }) => {
 
     setLoading(true)
 
-    const role = userType
+    const role = userType.toUpperCase();
     const payload = new FormData()
     payload.append('role', role)
     payload.append('email', formData.email)
     payload.append('password', formData.password)
     payload.append('confirmPassword', formData.confirmPassword)
 
-    if (role === 'dispensary') {
-      if (!formData.dispensaryName || !formData.location || !formData.licenseNumber || !formData.dispensaryLicense) {
-        setError('Please fill all dispensary fields and upload license.')
-        setLoading(false)
-        return
-      }
-      payload.append('name', formData.dispensaryName)
-      payload.append('address', formData.location)
-      payload.append('licenseNumber', formData.licenseNumber)
-      payload.append('certificate', formData.dispensaryLicense)
-    } else {
-      if (!formData.name) {
-        setError('Please enter your full name.')
-        setLoading(false)
-        return
-      }
-      payload.append('name', formData.name)
-      if (role === 'doctor') {
-        if (!formData.medicalCertification) {
-          setError('Please upload your medical certification.')
-          setLoading(false)
-          return
-        }
-        payload.append('medicalCertification', formData.medicalCertification)
-      }
+    if (role === 'DISPENSARY') {
+  // Dispensary-specific validation
+  if (!formData.dispensaryName || !formData.location || !formData.licenseNumber || !formData.dispensaryLicense) {
+    setError('Please fill all dispensary fields and upload license.')
+    setLoading(false)
+    return
+  }
+  payload.append('name', formData.dispensaryName)
+  payload.append('address', formData.location)
+  payload.append('licenseNumber', formData.licenseNumber)
+  payload.append('certificateFile', formData.dispensaryLicense)
+} else {
+  // Patient or Doctor
+  if (!formData.name) {
+    setError('Please enter your full name.')
+    setLoading(false)
+    return
+  }
+  payload.append('name', formData.name)
+
+  if (role === 'DOCTOR') {
+    if (!formData.medicalCertification) {
+      setError('Please upload your medical certification.')
+      setLoading(false)
+      return
     }
+    payload.append('medicalCertification', formData.medicalCertification)
+  }
+}
+
 
     try {
       const res = await fetch('http://localhost:8005/api/auth/register', {
