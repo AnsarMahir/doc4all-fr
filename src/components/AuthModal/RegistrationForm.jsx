@@ -89,7 +89,7 @@ const RegistrationForm = ({ switchToLogin, closeModal }) => {
       setLoading(false)
       return
     }
-    payload.append('medicalCertification', formData.medicalCertification)
+    payload.append('certificateFile', formData.medicalCertification)
   }
 }
 
