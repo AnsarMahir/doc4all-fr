@@ -9,6 +9,7 @@ import SearchDispensariesPage from './pages/SearchDispensariesPage'
 import DispensaryDetailsPage from './pages/DispensaryDetailsPage'
 import Footer from './components/Footer'
 import AuthModal from './components/AuthModal/AuthModal'
+import AdminApprovalPage from './pages/AdminApprovalPage'
 
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -32,6 +33,7 @@ function App() {
             <Route path="/find-dispensaries" element={<FindDispensariesPage />} />
             <Route path="/browse-dispensaries" element={<BrowseDispensariesPage />} />
             <Route path="/search-dispensaries" element={<SearchDispensariesPage />} />
+            <Route path="/pending-approval" element={<AdminApprovalPage/>} />
             <Route path="/dispensary/:id" element={<DispensaryDetailsPage />} />
           </Routes>
         </main>
