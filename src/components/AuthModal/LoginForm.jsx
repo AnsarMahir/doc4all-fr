@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from '../../contexts/AuthContext.jsx';
 
 const LoginForm = ({ switchToRegister, switchToOtpVerification, closeModal }) => {
   const [formData, setFormData] = useState({
@@ -8,6 +9,9 @@ const LoginForm = ({ switchToRegister, switchToOtpVerification, closeModal }) =>
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // Use the auth context
+  const { login } = useAuth()
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -23,22 +27,12 @@ const LoginForm = ({ switchToRegister, switchToOtpVerification, closeModal }) =>
     setLoading(true)
     
     try {
-      const res = await fetch('http://localhost:8005/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
+      // Use the context's login method instead of direct fetch
+      await login({
+        email: formData.email,
+        password: formData.password
       })
-
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || 'Invalid credentials')
-      }
-
-      const data = await res.json()
-      console.log('Logged in:', data)
+      
       closeModal()
     } catch (err) {
       setError(err.message)

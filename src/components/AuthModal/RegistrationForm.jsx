@@ -1,5 +1,6 @@
 // RegistrationForm.jsx - Updated with OTP integration
 import { useState } from 'react'
+import { useAuth } from '../../contexts/AuthContext.jsx'
 
 const RegistrationForm = ({ switchToLogin, switchToOtpVerification, closeModal }) => {
   const [userType, setUserType] = useState('patient')
@@ -17,6 +18,9 @@ const RegistrationForm = ({ switchToLogin, switchToOtpVerification, closeModal }
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // Use auth context for API calls
+  const { apiCall } = useAuth()
 
   const handleInputChange = (e) => {
     const { name, value } = e.target

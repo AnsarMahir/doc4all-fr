@@ -13,7 +13,7 @@ const adminAPI = {
         headers: {
           'Content-Type': 'application/json',
           // Add authorization header when you implement authentication
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
       });
       if (!response.ok) {
