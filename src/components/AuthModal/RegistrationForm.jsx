@@ -1,7 +1,7 @@
-// RegistrationForm.jsx - Updated version
+// RegistrationForm.jsx - Updated with OTP integration
 import { useState } from 'react'
 
-const RegistrationForm = ({ switchToLogin, closeModal }) => {
+const RegistrationForm = ({ switchToLogin, switchToOtpVerification, closeModal }) => {
   const [userType, setUserType] = useState('patient')
   const [formData, setFormData] = useState({
     email: '',
@@ -64,35 +64,34 @@ const RegistrationForm = ({ switchToLogin, closeModal }) => {
     payload.append('confirmPassword', formData.confirmPassword)
 
     if (role === 'DISPENSARY') {
-  // Dispensary-specific validation
-  if (!formData.dispensaryName || !formData.location || !formData.licenseNumber || !formData.dispensaryLicense) {
-    setError('Please fill all dispensary fields and upload license.')
-    setLoading(false)
-    return
-  }
-  payload.append('name', formData.dispensaryName)
-  payload.append('address', formData.location)
-  payload.append('licenseNumber', formData.licenseNumber)
-  payload.append('certificateFile', formData.dispensaryLicense)
-} else {
-  // Patient or Doctor
-  if (!formData.name) {
-    setError('Please enter your full name.')
-    setLoading(false)
-    return
-  }
-  payload.append('name', formData.name)
+      // Dispensary-specific validation
+      if (!formData.dispensaryName || !formData.location || !formData.licenseNumber || !formData.dispensaryLicense) {
+        setError('Please fill all dispensary fields and upload license.')
+        setLoading(false)
+        return
+      }
+      payload.append('name', formData.dispensaryName)
+      payload.append('address', formData.location)
+      payload.append('licenseNumber', formData.licenseNumber)
+      payload.append('certificateFile', formData.dispensaryLicense)
+    } else {
+      // Patient or Doctor
+      if (!formData.name) {
+        setError('Please enter your full name.')
+        setLoading(false)
+        return
+      }
+      payload.append('name', formData.name)
 
-  if (role === 'DOCTOR') {
-    if (!formData.medicalCertification) {
-      setError('Please upload your medical certification.')
-      setLoading(false)
-      return
+      if (role === 'DOCTOR') {
+        if (!formData.medicalCertification) {
+          setError('Please upload your medical certification.')
+          setLoading(false)
+          return
+        }
+        payload.append('certificateFile', formData.medicalCertification)
+      }
     }
-    payload.append('certificateFile', formData.medicalCertification)
-  }
-}
-
 
     try {
       const res = await fetch('http://localhost:8005/api/auth/register', {
@@ -103,7 +102,9 @@ const RegistrationForm = ({ switchToLogin, closeModal }) => {
         const text = await res.text()
         throw new Error(text || 'Registration failed')
       }
-      closeModal()
+      
+      // UPDATED: Switch to OTP verification with email instead of closing modal
+      switchToOtpVerification(formData.email)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -294,6 +295,18 @@ const RegistrationForm = ({ switchToLogin, closeModal }) => {
           className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
         >
           Log in
+        </button>
+      </p>
+
+      {/* NEW: OTP verification link */}
+      <p className="text-center text-sm text-gray-600 mt-2">
+        Need to verify your email?{' '}
+        <button
+          type="button"
+          onClick={() => switchToOtpVerification()}
+          className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
+        >
+          Verify OTP
         </button>
       </p>
     </div>

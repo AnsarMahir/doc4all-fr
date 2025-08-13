@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const LoginForm = ({ switchToRegister, closeModal }) => {
+const LoginForm = ({ switchToRegister, switchToOtpVerification, closeModal }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -124,6 +124,18 @@ const LoginForm = ({ switchToRegister, closeModal }) => {
           className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
         >
           Sign up
+        </button>
+      </p>
+
+      {/* NEW: OTP verification link */}
+      <p className="text-center text-sm text-gray-600 mt-2">
+        Need to verify your email?{' '}
+        <button
+          type="button"
+          onClick={() => switchToOtpVerification()}
+          className="text-primary-600 hover:text-primary-700 hover:underline font-medium"
+        >
+          Verify OTP
         </button>
       </p>
     </div>

@@ -1,12 +1,18 @@
 import { useState } from 'react'
 import LoginForm from './LoginForm'
 import RegistrationForm from './RegistrationForm'
+import OtpVerification from './OtpVerification'
 
 const AuthModal = ({ onClose }) => {
   const [view, setView] = useState('login')
+  const [otpEmail, setOtpEmail] = useState('')
 
   const showLogin = () => setView('login')
   const showRegister = () => setView('register')
+  const showOtpVerification = (email = '') => {
+    setOtpEmail(email)
+    setView('otp')
+  }
 
   // Handle backdrop click to close modal
   const handleBackdropClick = (e) => {
@@ -30,46 +36,63 @@ const AuthModal = ({ onClose }) => {
           ✕
         </button>
 
-        {/* Fixed header with tabs */}
-        <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-gray-200">
-          <div className="flex justify-center">
-            <div className="flex space-x-8">
-              <button
-                onClick={showLogin}
-                className={`px-4 py-2 font-medium transition-colors relative ${
-                  view === 'login'
-                    ? 'text-primary-600'
-                    : 'text-gray-600 hover:text-primary-600'
-                }`}
-              >
-                Log In
-                {view === 'login' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
-                )}
-              </button>
-              <button
-                onClick={showRegister}
-                className={`px-4 py-2 font-medium transition-colors relative ${
-                  view === 'register'
-                    ? 'text-primary-600'
-                    : 'text-gray-600 hover:text-primary-600'
-                }`}
-              >
-                Sign Up
-                {view === 'register' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
-                )}
-              </button>
+        {/* Fixed header with tabs - only show for login/register views */}
+        {view !== 'otp' && (
+          <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-gray-200">
+            <div className="flex justify-center">
+              <div className="flex space-x-8">
+                <button
+                  onClick={showLogin}
+                  className={`px-4 py-2 font-medium transition-colors relative ${
+                    view === 'login'
+                      ? 'text-primary-600'
+                      : 'text-gray-600 hover:text-primary-600'
+                  }`}
+                >
+                  Log In
+                  {view === 'login' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
+                  )}
+                </button>
+                <button
+                  onClick={showRegister}
+                  className={`px-4 py-2 font-medium transition-colors relative ${
+                    view === 'register'
+                      ? 'text-primary-600'
+                      : 'text-gray-600 hover:text-primary-600'
+                  }`}
+                >
+                  Sign Up
+                  {view === 'register' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto px-6 pb-6">
           {view === 'login' ? (
-            <LoginForm switchToRegister={showRegister} closeModal={onClose} />
+            <LoginForm 
+              switchToRegister={showRegister} 
+              switchToOtpVerification={showOtpVerification}
+              closeModal={onClose} 
+            />
+          ) : view === 'register' ? (
+            <RegistrationForm 
+              switchToLogin={showLogin} 
+              switchToOtpVerification={showOtpVerification}
+              closeModal={onClose} 
+            />
           ) : (
-            <RegistrationForm switchToLogin={showLogin} closeModal={onClose} />
+            <OtpVerification
+              switchToLogin={showLogin}
+              switchToRegister={showRegister}
+              closeModal={onClose}
+              initialEmail={otpEmail}
+            />
           )}
         </div>
       </div>
