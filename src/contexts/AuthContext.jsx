@@ -1,5 +1,6 @@
 // contexts/AuthContext.jsx
 import { createContext, useContext, useReducer, useEffect } from 'react'
+import { useNotifications } from './NotificationContext.jsx'
 
 // Auth reducer to manage state
 const authReducer = (state, action) => {
@@ -66,6 +67,14 @@ const AuthContext = createContext()
 // Auth Provider Component
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState)
+  
+  // Use notifications - but only if available (to avoid circular dependency)
+  let notifications = null
+  try {
+    notifications = useNotifications()
+  } catch (error) {
+    // NotificationContext not available, that's okay during initial setup
+  }
 
   // Check for existing session on app load
   useEffect(() => {
@@ -137,9 +146,21 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('auth_user', JSON.stringify(userData.user))
 
       dispatch({ type: 'LOGIN_SUCCESS', payload: userData })
+      
+      // Show success notification
+      if (notifications) {
+        notifications.success('Welcome back! You have been logged in successfully.')
+      }
+      
       return userData
     } catch (error) {
       dispatch({ type: 'LOGIN_FAILURE', payload: error.message })
+      
+      // Show error notification
+      if (notifications) {
+        notifications.error(error.message || 'Login failed. Please try again.')
+      }
+      
       throw error
     }
   }
@@ -157,6 +178,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('auth_user')
       dispatch({ type: 'LOGOUT' })
+      
+      // Show logout notification
+      if (notifications) {
+        notifications.info('You have been logged out successfully.')
+      }
     } catch (error) {
       console.error('Logout error:', error)
       localStorage.removeItem('auth_token')

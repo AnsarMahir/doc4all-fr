@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useNotifications } from '../../contexts/NotificationContext.jsx';
 
 const LoginForm = ({ switchToRegister, switchToOtpVerification, closeModal }) => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ const LoginForm = ({ switchToRegister, switchToOtpVerification, closeModal }) =>
   
   // Use the auth context
   const { login } = useAuth()
+  const notifications = useNotifications()
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -36,6 +38,7 @@ const LoginForm = ({ switchToRegister, switchToOtpVerification, closeModal }) =>
       closeModal()
     } catch (err) {
       setError(err.message)
+      // Note: Error notification is already handled in AuthContext
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,7 @@
 // RegistrationForm.jsx - Updated with OTP integration
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext.jsx'
+import { useNotifications } from '../../contexts/NotificationContext.jsx'
 
 const RegistrationForm = ({ switchToLogin, switchToOtpVerification, closeModal }) => {
   const [userType, setUserType] = useState('patient')
@@ -21,6 +22,7 @@ const RegistrationForm = ({ switchToLogin, switchToOtpVerification, closeModal }
   
   // Use auth context for API calls
   const { apiCall } = useAuth()
+  const notifications = useNotifications()
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -108,9 +110,11 @@ const RegistrationForm = ({ switchToLogin, switchToOtpVerification, closeModal }
       }
       
       // UPDATED: Switch to OTP verification with email instead of closing modal
+      notifications.success('Registration successful! Please check your email for the verification code.')
       switchToOtpVerification(formData.email)
     } catch (err) {
       setError(err.message)
+      notifications.error(err.message || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNotifications } from '../../contexts/NotificationContext.jsx'
 
 const OtpVerification = ({ switchToLogin, switchToRegister, closeModal, initialEmail = '' }) => {
   const [email, setEmail] = useState(initialEmail)
@@ -8,6 +9,8 @@ const OtpVerification = ({ switchToLogin, switchToRegister, closeModal, initialE
   const [isResending, setIsResending] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [showEmailInput, setShowEmailInput] = useState(!initialEmail)
+  
+  const notifications = useNotifications()
 
   // Cooldown timer effect
   useEffect(() => {
@@ -64,9 +67,11 @@ const OtpVerification = ({ switchToLogin, switchToRegister, closeModal, initialE
       }
 
       // OTP verified successfully
+      notifications.success('Email verified successfully! You can now log in.')
       closeModal()
     } catch (err) {
       setError(err.message)
+      notifications.error(err.message || 'OTP verification failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -96,9 +101,10 @@ const OtpVerification = ({ switchToLogin, switchToRegister, closeModal, initialE
       startResendCooldown()
       setShowEmailInput(false) // Hide email input after successful resend
       setError('') // Clear any previous errors
-      // You could show a success message here if needed
+      notifications.success('Verification code sent! Please check your email.')
     } catch (err) {
       setError(err.message)
+      notifications.error(err.message || 'Failed to resend OTP. Please try again.')
     } finally {
       setIsResending(false)
     }
