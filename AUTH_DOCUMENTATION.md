@@ -6,7 +6,7 @@ This authentication system provides comprehensive user management with role-base
 
 ## Features
 
-- **Role-based Authentication**: Support for ADMIN, DOCTOR, PATIENT, and DISPENSARY roles
+- **Role-baimport { useNotification } from '../hooks/useNotification.jsx'ed Authentication**: Support for ADMIN, DOCTOR, PATIENT, and DISPENSARY roles
 - **Protected Routes**: Route-level access control based on user roles
 - **Automatic Token Management**: Persistent token storage and automatic injection in API calls
 - **Session Management**: Automatic logout on token expiry
@@ -171,20 +171,28 @@ The login endpoint should return:
 
 ```
 src/
+├── config/
+│   └── api.js                  # API configuration and endpoints
 ├── contexts/
-│   └── AuthContext.js          # Main authentication context
+│   └── AuthContext.jsx         # Main authentication context
 ├── components/
 │   └── auth/
 │       └── ProtectedRoute.jsx  # Protected route component
 ├── hooks/
 │   ├── useApi.js              # API service hook
-│   └── useRoleGuard.js        # Role checking hooks
+│   ├── useRoleGuard.js        # Role checking hooks
+│   └── useNotification.jsx    # Notification system
 ├── pages/
-│   └── UnauthorizedPage.jsx   # Unauthorized access page
+│   ├── UnauthorizedPage.jsx   # Unauthorized access page
+│   └── AdminApprovalPage.jsx  # Example of properly integrated page
 └── components/
     └── AuthModal/
         ├── LoginForm.jsx       # Updated login form
         └── RegistrationForm.jsx # Updated registration form
+
+# Environment Configuration
+.env                            # Environment variables
+.env.example                   # Environment template
 ```
 
 ## Best Practices
@@ -224,23 +232,55 @@ const Navigation = () => {
 ### Data Fetching with Authentication
 
 ```jsx
+import { useApi } from "../hooks/useApi";
+import { useRoleCheck } from "../hooks/useRoleGuard";
+import { useNotification } from "../hooks/useNotification";
+import { API_CONFIG } from "../config/api";
+
 const DataComponent = () => {
-  const { get } = useApi();
+  const { get, loading, error } = useApi();
+  const { isAdmin } = useRoleCheck();
+  const { success, error: notifyError } = useNotification();
   const [data, setData] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await get("/api/protected-data");
+        const result = await get(API_CONFIG.ENDPOINTS.ADMIN.PENDING_APPROVALS);
         setData(result);
+        success("Data loaded successfully!");
       } catch (error) {
-        // Handle error (user will be auto-logged out if token expired)
+        notifyError("Failed to load data");
       }
     };
 
-    fetchData();
-  }, []);
+    if (isAdmin) {
+      fetchData();
+    }
+  }, [isAdmin]);
 
   return <div>{/* Render data */}</div>;
 };
+```
+
+## Environment Configuration
+
+Create a `.env` file in your project root:
+
+```env
+# API Configuration
+VITE_API_BASE_URL=http://localhost:8005/api
+
+# Environment
+VITE_NODE_ENV=development
+
+# Application Configuration
+VITE_APP_NAME=Med4All
+VITE_APP_VERSION=1.0.0
+```
+
+Access environment variables in your code:
+
+```javascript
+const apiUrl = import.meta.env.VITE_API_BASE_URL;
 ```

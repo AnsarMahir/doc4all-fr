@@ -1,104 +1,88 @@
 import React, { useState, useEffect } from 'react';
 import { FaEye, FaCheck, FaTimes, FaUser, FaBuilding, FaFileAlt, FaDownload, FaCalendar, FaMapMarkerAlt, FaPhone, FaEnvelope, FaIdBadge } from 'react-icons/fa';
-
-// API Configuration
-const API_BASE_URL = 'http://localhost:8005/api';
-
-// API service functions
-const adminAPI = {
-  getPendingApprovals: async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin/pending-approvals`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // Add authorization header when you implement authentication
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching pending approvals:', error);
-      throw error;
-    }
-  },
-
-  approveUser: async (userId) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin/approve-user/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error approving user:', error);
-      throw error;
-    }
-  },
-
-  rejectUser: async (userId, reason) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin/reject-user/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ reason }),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error rejecting user:', error);
-      throw error;
-    }
-  },
-
-  getCertificate: (certificatePath) => {
-    // This will return the URL to view/download the certificate
-    return `${API_BASE_URL}/files/${certificatePath}`;
-  }
-};
+import { useApi } from '../hooks/useApi';
+import { useRoleGuard, useRoleCheck } from '../hooks/useRoleGuard';
+import { useNotification, NotificationContainer } from '../hooks/useNotification.jsx';
+import { API_CONFIG, buildUrl } from '../config/api';
 
 const AdminApprovalPage = () => {
+  // Authentication and API hooks
+  const { get, put, loading: apiLoading, error: apiError, clearError } = useApi();
+  const { isAdmin } = useRoleCheck();
+  const { notifications, success, error: notifyError, removeNotification } = useNotification();
+  
+  // Component state
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('ALL');
-  const [error, setError] = useState(null);
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [localError, setLocalError] = useState(null);
+
+  // Role guard - redirect if not admin
+  useRoleGuard('ADMIN');
+
+  // API service functions using useApi hook
+  const adminAPI = {
+    getPendingApprovals: async () => {
+      try {
+        clearError();
+        setLocalError(null);
+        const data = await get(API_CONFIG.ENDPOINTS.ADMIN.PENDING_APPROVALS);
+        return data;
+      } catch (error) {
+        console.error('Error fetching pending approvals:', error);
+        throw error;
+      }
+    },
+
+    approveUser: async (userId) => {
+      try {
+        clearError();
+        setLocalError(null);
+        const data = await put(API_CONFIG.ENDPOINTS.ADMIN.APPROVE_USER(userId));
+        return data;
+      } catch (error) {
+        console.error('Error approving user:', error);
+        throw error;
+      }
+    },
+
+    rejectUser: async (userId, reason) => {
+      try {
+        clearError();
+        setLocalError(null);
+        const data = await put(API_CONFIG.ENDPOINTS.ADMIN.REJECT_USER(userId), { reason });
+        return data;
+      } catch (error) {
+        console.error('Error rejecting user:', error);
+        throw error;
+      }
+    },
+
+    getCertificate: (certificatePath) => {
+      return buildUrl(API_CONFIG.ENDPOINTS.ADMIN.GET_CERTIFICATE(certificatePath));
+    }
+  };
 
   // Fetch pending approvals from API
   const fetchPendingApprovals = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLocalError(null);
       const data = await adminAPI.getPendingApprovals();
       setPendingApprovals(data);
     } catch (error) {
-      setError('Failed to fetch pending approvals. Please try again.');
+      setLocalError('Failed to fetch pending approvals. Please try again.');
       console.error('Error fetching pending approvals:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPendingApprovals();
-  }, []);
+    if (isAdmin) {
+      fetchPendingApprovals();
+    }
+  }, [isAdmin]);
 
   const handleViewDetails = (approval) => {
     setSelectedApproval(approval);
@@ -109,17 +93,19 @@ const AdminApprovalPage = () => {
     try {
       await adminAPI.approveUser(id);
       setPendingApprovals(prev => prev.filter(approval => approval.id !== id));
-      // Show success message
-      alert('User approved successfully!');
+      setLocalError(null);
+      success('User approved successfully!');
     } catch (error) {
-      alert('Failed to approve user. Please try again.');
+      setLocalError('Failed to approve user. Please try again.');
+      notifyError('Failed to approve user. Please try again.');
       console.error('Error approving user:', error);
     }
   };
 
   const handleReject = async (id) => {
     if (!rejectionReason.trim()) {
-      alert('Please provide a reason for rejection.');
+      setLocalError('Please provide a reason for rejection.');
+      notifyError('Please provide a reason for rejection.');
       return;
     }
     
@@ -128,10 +114,11 @@ const AdminApprovalPage = () => {
       setPendingApprovals(prev => prev.filter(approval => approval.id !== id));
       setIsRejecting(false);
       setRejectionReason('');
-      // Show success message
-      alert('User rejected successfully!');
+      setLocalError(null);
+      success('User rejected successfully!');
     } catch (error) {
-      alert('Failed to reject user. Please try again.');
+      setLocalError('Failed to reject user. Please try again.');
+      notifyError('Failed to reject user. Please try again.');
       console.error('Error rejecting user:', error);
     }
   };
@@ -160,6 +147,21 @@ const AdminApprovalPage = () => {
       : <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">Dispensary</span>;
   };
 
+  // Combine API loading with local error state
+  const loading = apiLoading;
+  const error = apiError || localError;
+
+  // Early return if not admin (role guard will handle redirect)
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -184,6 +186,17 @@ const AdminApprovalPage = () => {
           >
             Retry
           </button>
+          {(apiError || localError) && (
+            <button
+              onClick={() => {
+                clearError();
+                setLocalError(null);
+              }}
+              className="ml-2 bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+            >
+              Clear Error
+            </button>
+          )}
         </div>
       </div>
     );
@@ -191,6 +204,12 @@ const AdminApprovalPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Notification Container */}
+      <NotificationContainer 
+        notifications={notifications} 
+        onRemove={removeNotification} 
+      />
+      
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
