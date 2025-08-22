@@ -7,8 +7,9 @@ import { API_CONFIG, buildUrl } from '../config/api';
 
 const AdminApprovalPage = () => {
   // Authentication and API hooks
-  const { get, put, loading: apiLoading, error: apiError, clearError } = useApi();
+  const { get, post, loading: apiLoading, error: apiError, clearError } = useApi();
   const { isAdmin } = useRoleCheck();
+  const isAdminValue = isAdmin();
   const { notifications, success, error: notifyError, removeNotification } = useNotification();
   
   // Component state
@@ -24,12 +25,23 @@ const AdminApprovalPage = () => {
   useRoleGuard('ADMIN');
 
   // API service functions using useApi hook
+  // Helper to get admin id from localStorage
+  const getAdminId = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('auth_user'));
+      return user?.id;
+    } catch {
+      return undefined;
+    }
+  };
+
   const adminAPI = {
     getPendingApprovals: async () => {
       try {
         clearError();
         setLocalError(null);
-        const data = await get(API_CONFIG.ENDPOINTS.ADMIN.PENDING_APPROVALS);
+        const url = buildUrl(API_CONFIG.ENDPOINTS.ADMIN.PENDING_APPROVALS);
+        const data = await get(url);
         return data;
       } catch (error) {
         console.error('Error fetching pending approvals:', error);
@@ -41,7 +53,10 @@ const AdminApprovalPage = () => {
       try {
         clearError();
         setLocalError(null);
-        const data = await put(API_CONFIG.ENDPOINTS.ADMIN.APPROVE_USER(userId));
+        const approvedBy = getAdminId();
+        const url = buildUrl(API_CONFIG.ENDPOINTS.ADMIN.APPROVE_USER(userId));
+        // Use PUT instead of POST
+        const data = await post(url, { approvedBy });
         return data;
       } catch (error) {
         console.error('Error approving user:', error);
@@ -53,7 +68,10 @@ const AdminApprovalPage = () => {
       try {
         clearError();
         setLocalError(null);
-        const data = await put(API_CONFIG.ENDPOINTS.ADMIN.REJECT_USER(userId), { reason });
+        const rejectedBy = getAdminId();
+        const url = buildUrl(API_CONFIG.ENDPOINTS.ADMIN.REJECT_USER(userId));
+        // Send rejectedBy and rejectionReason in body
+        const data = await post(url, { rejectedBy, rejectionReason: reason });
         return data;
       } catch (error) {
         console.error('Error rejecting user:', error);
@@ -79,10 +97,10 @@ const AdminApprovalPage = () => {
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdminValue) {
       fetchPendingApprovals();
     }
-  }, [isAdmin]);
+  }, [isAdminValue]);
 
   const handleViewDetails = (approval) => {
     setSelectedApproval(approval);
@@ -316,14 +334,24 @@ const AdminApprovalPage = () => {
                         View Details
                       </button>
                       <button
-                        onClick={() => handleApprove(approval.id)}
+                        onClick={() => {
+                          setSelectedApproval(approval);
+                          setIsModalOpen(true);
+                          setIsRejecting(false);
+                          setRejectionReason('');
+                        }}
                         className="inline-flex items-center px-3 py-2 border border-green-300 rounded-md text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 transition-colors"
                       >
                         <FaCheck className="mr-2" />
                         Approve
                       </button>
                       <button
-                        onClick={() => handleReject(approval.id)}
+                        onClick={() => {
+                          setSelectedApproval(approval);
+                          setIsModalOpen(true);
+                          setIsRejecting(true);
+                          setRejectionReason('');
+                        }}
                         className="inline-flex items-center px-3 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
                       >
                         <FaTimes className="mr-2" />

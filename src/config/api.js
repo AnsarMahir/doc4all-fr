@@ -13,8 +13,8 @@ export const API_CONFIG = {
     // Admin endpoints
     ADMIN: {
       PENDING_APPROVALS: '/admin/pending-approvals',
-      APPROVE_USER: (userId) => `/admin/approve-user/${userId}`,
-      REJECT_USER: (userId) => `/admin/reject-user/${userId}`,
+      APPROVE_USER: (userId) => `/admin/approve/${userId}`,
+      REJECT_USER: (userId) => `/admin/reject/${userId}`,
       GET_CERTIFICATE: (certificatePath) => `/files/${certificatePath}`
     },
     // Doctor endpoints
