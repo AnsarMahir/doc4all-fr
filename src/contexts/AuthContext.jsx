@@ -47,6 +47,14 @@ const authReducer = (state, action) => {
         ...state,
         user: { ...state.user, ...action.payload }
       }
+    case 'SET_PROFILE_COMPLETION':
+      return {
+        ...state,
+        user: { 
+          ...state.user, 
+          profileCompleted: action.payload 
+        }
+      }
     default:
       return state
   }
@@ -221,6 +229,17 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (userData) => {
     dispatch({ type: 'UPDATE_USER', payload: userData })
+    
+    // Update localStorage if user data changes
+    if (userData) {
+      const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}')
+      const updatedUser = { ...currentUser, ...userData }
+      localStorage.setItem('auth_user', JSON.stringify(updatedUser))
+    }
+  }
+
+  const setProfileCompletion = (completed) => {
+    dispatch({ type: 'SET_PROFILE_COMPLETION', payload: completed })
   }
 
   const clearError = () => {
@@ -241,6 +260,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUser,
+    setProfileCompletion,
     clearError,
     apiCall,
     hasRole,

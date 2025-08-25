@@ -31,7 +31,10 @@ export const API_CONFIG = {
     DISPENSARY: {
       DASHBOARD: '/dispensary/dashboard',
       DISPENSARIES: '/dispensaries',
-      DISPENSARY_DETAILS: (id) => `/dispensaries/${id}`
+      DISPENSARY_DETAILS: (id) => `/dispensaries/${id}`,
+      PROFILE: '/dispensary/profile',
+      COMPLETE_PROFILE: '/dispensary/complete-profile',
+      CHECK_PROFILE_STATUS: '/dispensary/profile-status'
     }
   }
 }

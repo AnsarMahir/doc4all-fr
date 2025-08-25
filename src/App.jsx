@@ -17,6 +17,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import DashboardLayout from './components/layout/DashboardLayout'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import ProfilePage from './pages/dashboard/ProfilePage'
+import DispensaryProfilePage from './pages/dashboard/DispensaryProfilePage'
 
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -118,6 +119,7 @@ function App() {
                         <Route path="/dispensary/*" element={
                           <ProtectedRoute requiredRole="DISPENSARY">
                             <Routes>
+                              <Route path="/profile" element={<DispensaryProfilePage />} />
                               <Route path="/location" element={<div>Update Location (Coming Soon)</div>} />
                               <Route path="/invite-doctors" element={<div>Invite Doctors (Coming Soon)</div>} />
                               <Route path="/doctors" element={<div>My Doctors (Coming Soon)</div>} />

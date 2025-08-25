@@ -21,13 +21,13 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
   // Navigation items based on user role
   const getNavigationItems = () => {
     const commonItems = [
-      { path: '/dashboard', label: 'Dashboard', icon: FaHome },
-      { path: '/dashboard/profile', label: 'Profile', icon: FaUser }
+      { path: '/dashboard', label: 'Dashboard', icon: FaHome }
     ]
 
     const roleBasedItems = {
       ADMIN: [
         ...commonItems,
+        { path: '/dashboard/profile', label: 'Profile', icon: FaUser },
         { path: '/dashboard/admin/pending-approval', label: 'Pending Approvals', icon: FaClipboardList },
         { path: '/dashboard/admin/users', label: 'Manage Users', icon: FaUsers },
         { path: '/dashboard/admin/dispensaries', label: 'Manage Dispensaries', icon: FaHospital },
@@ -36,6 +36,7 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
       ],
       PATIENT: [
         ...commonItems,
+        { path: '/dashboard/profile', label: 'Profile', icon: FaUser },
         { path: '/dashboard/patient/search-dispensaries', label: 'Search Dispensaries', icon: FaSearch },
         { path: '/dashboard/patient/browse-dispensaries', label: 'Browse by Location', icon: FaMapMarkerAlt },
         { path: '/dashboard/patient/my-prescriptions', label: 'My Prescriptions', icon: FaClipboardList },
@@ -43,6 +44,7 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
       ],
       DISPENSARY: [
         ...commonItems,
+        { path: '/dashboard/dispensary/profile', label: 'Profile', icon: FaUser },
         { path: '/dashboard/dispensary/location', label: 'Update Location', icon: FaMapMarkerAlt },
         { path: '/dashboard/dispensary/invite-doctors', label: 'Invite Doctors', icon: FaEnvelope },
         { path: '/dashboard/dispensary/doctors', label: 'My Doctors', icon: FaUserMd },
@@ -51,6 +53,7 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
       ],
       DOCTOR: [
         ...commonItems,
+        { path: '/dashboard/profile', label: 'Profile', icon: FaUser },
         { path: '/dashboard/doctor/invitations', label: 'Invitations', icon: FaEnvelope },
         { path: '/dashboard/doctor/dispensaries', label: 'My Dispensaries', icon: FaHospital },
         { path: '/dashboard/doctor/patients', label: 'My Patients', icon: FaUsers },
@@ -58,7 +61,7 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
       ]
     }
 
-    return roleBasedItems[userRole] || commonItems
+    return roleBasedItems[userRole] || [...commonItems, { path: '/dashboard/profile', label: 'Profile', icon: FaUser }]
   }
 
   const navigationItems = getNavigationItems()
