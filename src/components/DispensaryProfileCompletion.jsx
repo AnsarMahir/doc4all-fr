@@ -128,8 +128,8 @@ const DispensaryProfileCompletion = ({ onComplete }) => {
         latitude: formData.latitude ? parseFloat(formData.latitude) : null
       }
       
-      const response = await apiCall(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.COMPLETE_PROFILE), {
-        method: 'POST',
+      const response = await apiCall(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.PROFILE), {
+        method: 'PUT',
         body: JSON.stringify(profileData)
       })
       
@@ -138,7 +138,14 @@ const DispensaryProfileCompletion = ({ onComplete }) => {
         throw new Error(error || 'Failed to complete profile')
       }
       
-      const result = await response.json()
+      // Handle both JSON and text responses
+      let result
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json()
+      } else {
+        result = { message: await response.text() }
+      }
       
       // Update user context to reflect profile completion
       updateUser({ profileCompleted: true })

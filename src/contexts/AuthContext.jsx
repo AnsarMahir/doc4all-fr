@@ -47,14 +47,18 @@ const authReducer = (state, action) => {
         ...state,
         user: { ...state.user, ...action.payload }
       }
-    case 'SET_PROFILE_COMPLETION':
+    case 'SET_PROFILE_COMPLETION': {
+      // Also persist in localStorage
+      if (state.user) {
+        const updatedUser = { ...state.user, profileCompleted: action.payload }
+        localStorage.setItem('auth_user', JSON.stringify(updatedUser))
+      }
       return {
         ...state,
-        user: { 
-          ...state.user, 
-          profileCompleted: action.payload 
-        }
+        user: state.user ? { ...state.user, profileCompleted: action.payload } : null,
+        profileCompleted: action.payload
       }
+    }
     default:
       return state
   }
@@ -66,7 +70,8 @@ const initialState = {
   user: null,
   token: null,
   loading: true,
-  error: null
+  error: null,
+  profileCompleted: null // null = unknown, true/false = known
 }
 
 // Create contexts
@@ -229,12 +234,15 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (userData) => {
     dispatch({ type: 'UPDATE_USER', payload: userData })
-    
     // Update localStorage if user data changes
     if (userData) {
       const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}')
       const updatedUser = { ...currentUser, ...userData }
       localStorage.setItem('auth_user', JSON.stringify(updatedUser))
+    }
+    // If profileCompleted is updated, update context state as well
+    if (userData && Object.prototype.hasOwnProperty.call(userData, 'profileCompleted')) {
+      dispatch({ type: 'SET_PROFILE_COMPLETION', payload: userData.profileCompleted })
     }
   }
 
@@ -264,7 +272,8 @@ export const AuthProvider = ({ children }) => {
     clearError,
     apiCall,
     hasRole,
-    hasAnyRole
+    hasAnyRole,
+    profileCompleted: state.profileCompleted
   }
 
   return (
