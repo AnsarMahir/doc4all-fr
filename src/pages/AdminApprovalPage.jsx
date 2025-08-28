@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaEye, FaCheck, FaTimes, FaUser, FaBuilding, FaFileAlt, FaDownload, FaCalendar, FaMapMarkerAlt, FaPhone, FaEnvelope, FaIdBadge } from 'react-icons/fa';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../contexts/AuthContext';
 import { useRoleGuard, useRoleCheck } from '../hooks/useRoleGuard';
 import { useNotification, NotificationContainer } from '../hooks/useNotification.jsx';
 import { API_CONFIG, buildUrl } from '../config/api';
@@ -8,6 +9,7 @@ import { API_CONFIG, buildUrl } from '../config/api';
 const AdminApprovalPage = () => {
   // Authentication and API hooks
   const { get, post, loading: apiLoading, error: apiError, clearError } = useApi();
+  const { apiCall } = useAuth();
   const { isAdmin } = useRoleCheck();
   const isAdminValue = isAdmin();
   const { notifications, success, error: notifyError, removeNotification } = useNotification();
@@ -20,6 +22,7 @@ const AdminApprovalPage = () => {
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [localError, setLocalError] = useState(null);
+  const [downloadingCertificate, setDownloadingCertificate] = useState(false);
 
   // Role guard - redirect if not admin
   useRoleGuard('ADMIN');
@@ -81,6 +84,53 @@ const AdminApprovalPage = () => {
 
     getCertificate: (certificatePath) => {
       return buildUrl(API_CONFIG.ENDPOINTS.ADMIN.GET_CERTIFICATE(certificatePath));
+    },
+
+    downloadCertificate: async (email) => {
+      try {
+        clearError();
+        setLocalError(null);
+        setDownloadingCertificate(true);
+        const url = buildUrl(API_CONFIG.ENDPOINTS.ADMIN.DOWNLOAD_CERTIFICATE);
+        
+        // Make the request using apiCall which handles authentication automatically
+        const response = await apiCall(url, {
+          method: 'POST',
+          body: JSON.stringify({ email })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to download certificate');
+        }
+
+        // Create blob from response
+        const blob = await response.blob();
+        
+        // Get filename from Content-Disposition header or use default
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'certificate.pdf';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        // Create object URL and open in new tab for preview
+        const fileURL = URL.createObjectURL(blob);
+        window.open(fileURL, '_blank');
+        
+        // Clean up object URL after a delay
+        setTimeout(() => URL.revokeObjectURL(fileURL), 1000);
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error downloading certificate:', error);
+        setLocalError('Failed to download certificate. Please try again.');
+        throw error;
+      } finally {
+        setDownloadingCertificate(false);
+      }
     }
   };
 
@@ -138,6 +188,16 @@ const AdminApprovalPage = () => {
       setLocalError('Failed to reject user. Please try again.');
       notifyError('Failed to reject user. Please try again.');
       console.error('Error rejecting user:', error);
+    }
+  };
+
+  const handleDownloadCertificate = async (email) => {
+    try {
+      await adminAPI.downloadCertificate(email);
+      success('Certificate opened successfully!');
+    } catch (error) {
+      notifyError('Failed to download certificate. Please try again.');
+      console.error('Error downloading certificate:', error);
     }
   };
 
@@ -412,15 +472,16 @@ const AdminApprovalPage = () => {
                     <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
                       <div>
                         <h5 className="font-medium text-gray-900">Professional Certificate</h5>
-                        <p className="text-sm text-gray-600">File: {selectedApproval.certificatePath.split('/').pop()}</p>
+                        <p className="text-sm text-gray-600">User: {selectedApproval.email}</p>
                         <p className="text-sm text-gray-500">Uploaded: {formatDate(selectedApproval.createdAt)}</p>
                       </div>
                       <button
-                        onClick={() => window.open(adminAPI.getCertificate(selectedApproval.certificatePath), '_blank')}
-                        className="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+                        onClick={() => handleDownloadCertificate(selectedApproval.email)}
+                        disabled={downloadingCertificate}
+                        className="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <FaDownload className="mr-2" />
-                        View Certificate
+                        {downloadingCertificate ? 'Loading...' : 'View Certificate'}
                       </button>
                     </div>
                   </div>

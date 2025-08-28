@@ -9,6 +9,8 @@ const containerStyle = {
   height: '600px'
 }
 
+6.990722, 79.887897
+
 // Default center (can be a central location in your target market)
 const defaultCenter = {
   lat: 37.7749,
@@ -28,7 +30,7 @@ const mockDispensaries = [
   {
     id: 1,
     name: "Wellness Ayurveda Center",
-    location: { lat: 37.7739, lng: -122.4312 },
+    location: { lat: 6.990722, lng: 79.888897},
     address: "123 Kahatwoita St, Nittambuwa, WP",
     phone: "+1 (415) 555-1234",
     website: "https://wellness-ayurveda.example.com",
@@ -214,8 +216,7 @@ const FindDispensariesPage = () => {
   // Function to use saved location
   const useSavedLocation = () => {
     if (savedLocation) {
-      setUserLocation(savedLocation)
-      setCenter(savedLocation)
+      setNewUserLocation(savedLocation)
       setLocationError(null)
       
       // Pan map to saved location
@@ -223,6 +224,16 @@ const FindDispensariesPage = () => {
         map.panTo(savedLocation)
       }
     }
+  }
+
+  // Function to clear map and set new location
+  const setNewUserLocation = (newLocation) => {
+    // Clear the map temporarily to force re-render
+    setUserLocation(null)
+    setTimeout(() => {
+      setUserLocation(newLocation)
+      setCenter(newLocation)
+    }, 50)
   }
 
   // Function to use GPS location temporarily (without saving)
@@ -318,8 +329,7 @@ const FindDispensariesPage = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           }
-          setUserLocation(currentPosition)
-          setCenter(currentPosition)
+          setNewUserLocation(currentPosition)
           setIsRequestingLocation(false)
           setLocationError(null)
           
@@ -377,8 +387,7 @@ const FindDispensariesPage = () => {
       lng: event.latLng.lng()
     }
     
-    setUserLocation(clickedLocation)
-    setCenter(clickedLocation)
+    setNewUserLocation(clickedLocation)
     setLocationError(null)
     
     // Save to database
@@ -758,6 +767,7 @@ const FindDispensariesPage = () => {
               {isLoaded ? (
                 <div className="rounded-lg overflow-hidden border border-gray-300">
                   <GoogleMap
+                    key={userLocation ? `map-${userLocation.lat}-${userLocation.lng}` : 'map-default'}
                     mapContainerStyle={containerStyle}
                     center={center}
                     zoom={13}
@@ -774,6 +784,7 @@ const FindDispensariesPage = () => {
                     {userLocation && (
                       <>
                         <Marker
+                          key={`user-location-${userLocation.lat}-${userLocation.lng}`}
                           position={userLocation}
                           icon={{
                             path: 0, // Circle
@@ -788,6 +799,7 @@ const FindDispensariesPage = () => {
                         
                         {/* Search radius circle */}
                         <Circle
+                          key={`circle-${userLocation.lat}-${userLocation.lng}-${searchRadius}`}
                           center={userLocation}
                           radius={searchRadius * 1000} // Convert km to meters
                           options={{
