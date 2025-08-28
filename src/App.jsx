@@ -107,6 +107,7 @@ function App() {
                         <Route path="/patient/*" element={
                           <ProtectedRoute requiredRole="PATIENT">
                             <Routes>
+                              <Route path="/find-dispensaries" element={<FindDispensariesPage />} />
                               <Route path="/search-dispensaries" element={<SearchDispensariesPage />} />
                               <Route path="/browse-dispensaries" element={<BrowseDispensariesPage />} />
                               <Route path="/my-prescriptions" element={<div>My Prescriptions (Coming Soon)</div>} />

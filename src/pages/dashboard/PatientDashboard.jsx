@@ -5,8 +5,15 @@ import { Link } from 'react-router-dom'
 const PatientDashboard = () => {
   const quickActions = [
     {
+      title: 'Find Dispensaries',
+      description: 'Find dispensaries near you with map view',
+      icon: FaMapMarkerAlt,
+      link: '/dashboard/patient/find-dispensaries',
+      color: 'bg-green-500'
+    },
+    {
       title: 'Search Dispensaries',
-      description: 'Find dispensaries near you',
+      description: 'Search dispensaries by criteria',
       icon: FaSearch,
       link: '/dashboard/patient/search-dispensaries',
       color: 'bg-blue-500'
@@ -16,7 +23,7 @@ const PatientDashboard = () => {
       description: 'Explore dispensaries by area',
       icon: FaMapMarkerAlt,
       link: '/dashboard/patient/browse-dispensaries',
-      color: 'bg-green-500'
+      color: 'bg-indigo-500'
     },
     {
       title: 'My Prescriptions',
@@ -42,7 +49,7 @@ const PatientDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
         {quickActions.map((action) => {
           const Icon = action.icon
           return (

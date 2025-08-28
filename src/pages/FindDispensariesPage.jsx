@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { GoogleMap, useJsApiLoader, Marker, Circle, InfoWindow } from '@react-google-maps/api'
-import { FaMapMarkerAlt, FaDirections, FaPhone, FaGlobe, FaLeaf, FaYinYang, FaHospital, FaStar } from 'react-icons/fa'
+import { FaMapMarkerAlt, FaDirections, FaPhone, FaGlobe, FaLeaf, FaYinYang, FaHospital, FaStar, FaLocationArrow, FaRedo } from 'react-icons/fa'
+import { useApi } from '../hooks/useApi'
+import { buildUrl, API_CONFIG } from '../config/api'
 
 const containerStyle = {
   width: '100%',
@@ -15,7 +17,13 @@ const defaultCenter = {
 
 const libraries = ['places']
 
-// Mock data for dispensaries (in a real app, this would come from your backend)
+// Mock data for dispensaries (REPLACE WITH REAL DATA FROM YOUR BACKEND)
+// TO INTEGRATE WITH REAL DATA:
+// 1. Update the fetchDispensaries() function to call your actual API endpoint
+// 2. Ensure your dispensary data includes: id, name, location (lat, lng), address, phone, website, discipline, rating, reviewCount, description
+// 3. Make sure dispensaries in your database have accurate latitude/longitude coordinates
+// 4. Consider adding filtering capabilities to your API (by discipline, location bounds, etc.)
+// 5. The Google Maps API will handle the map display - dispensaries don't need to be "attached" to Google Maps
 const mockDispensaries = [
   {
     id: 1,
@@ -96,16 +104,140 @@ const FindDispensariesPage = () => {
   const [center, setCenter] = useState(defaultCenter)
   const [map, setMap] = useState(null)
   const [nearbyDispensaries, setNearbyDispensaries] = useState([])
+  const [allDispensaries, setAllDispensaries] = useState([])
   const [selectedDispensary, setSelectedDispensary] = useState(null)
   const [searchRadius, setSearchRadius] = useState(5) // in kilometers
   const [disciplineFilter, setDisciplineFilter] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
+  const [locationError, setLocationError] = useState(null)
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false)
+  const [isLoadingDispensaries, setIsLoadingDispensaries] = useState(false)
+  const [savedLocation, setSavedLocation] = useState(null)
+  const [isLoadingSavedLocation, setIsLoadingSavedLocation] = useState(false)
+  const [isSavingLocation, setIsSavingLocation] = useState(false)
+  const [showLocationOptions, setShowLocationOptions] = useState(false)
   
   const mapRef = useRef(null)
+  const { get, post } = useApi()
+
+  // Function to fetch dispensaries from backend
+  const fetchDispensaries = async () => {
+    setIsLoadingDispensaries(true)
+    try {
+      // TODO: Replace with your actual API endpoint
+      // const response = await get('/dispensaries')
+      // setAllDispensaries(response.data)
+      
+      // For now, using mock data - replace this with actual API call
+      console.log('Using mock data - replace with actual API call to /dispensaries')
+      setAllDispensaries(mockDispensaries)
+    } catch (error) {
+      console.error('Error fetching dispensaries:', error)
+      // Fallback to mock data if API fails
+      setAllDispensaries(mockDispensaries)
+    } finally {
+      setIsLoadingDispensaries(false)
+    }
+  }
+
+  // Function to fetch saved location from backend
+  const fetchSavedLocation = async () => {
+    setIsLoadingSavedLocation(true)
+    try {
+      const response = await get(buildUrl(API_CONFIG.ENDPOINTS.PATIENT.LOCATION))
+      console.log('Fetch saved location response:', response)
+      
+      // Handle the direct response format: {"longitude":79.89218830363825,"latitude":7.101840304947628}
+      let lat, lng
+      
+      // Check if response is the direct location object
+      if (response && response.latitude && response.longitude) {
+        lat = response.latitude
+        lng = response.longitude
+      }
+      // Or if it's wrapped in a data object
+      else if (response && response.data && response.data.latitude && response.data.longitude) {
+        lat = response.data.latitude
+        lng = response.data.longitude
+      }
+      // Handle other possible formats
+      else if (response && response.data) {
+        const data = response.data
+        if (data.Latitude && data.Longitude) {
+          lat = data.Latitude
+          lng = data.Longitude
+        } else if (data.lat && data.lng) {
+          lat = data.lat
+          lng = data.lng
+        }
+      }
+      
+      // Only proceed if we have valid coordinates
+      if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+        const location = { lat: Number(lat), lng: Number(lng) }
+        console.log('Found saved location:', location)
+        setSavedLocation(location)
+        return location
+      }
+      
+      console.log('No valid saved location found - no coordinates in response')
+      return null
+    } catch (error) {
+      console.error('Error fetching saved location:', error)
+      return null
+    } finally {
+      setIsLoadingSavedLocation(false)
+    }
+  }
+
+  // Function to save location to backend
+  const saveLocationToDb = async (location) => {
+    setIsSavingLocation(true)
+    try {
+      const response = await post(buildUrl(API_CONFIG.ENDPOINTS.PATIENT.UPDATE_LOCATION), {
+        Latitude: location.lat,
+        Longitude: location.lng
+      })
+      if (response.success) {
+        setSavedLocation(location)
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Error saving location:', error)
+      return false
+    } finally {
+      setIsSavingLocation(false)
+    }
+  }
+
+  // Function to use saved location
+  const useSavedLocation = () => {
+    if (savedLocation) {
+      setUserLocation(savedLocation)
+      setCenter(savedLocation)
+      setLocationError(null)
+      
+      // Pan map to saved location
+      if (map) {
+        map.panTo(savedLocation)
+      }
+    }
+  }
+
+  // Function to use GPS location temporarily (without saving)
+  const useGpsLocationTemporary = () => {
+    requestUserLocation(false) // false means don't save to DB
+  }
+
+  // Function to update and save GPS location to DB
+  const useGpsLocationAndSave = () => {
+    requestUserLocation(true) // true means save to DB
+  }
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: '', // Replace with your actual API key
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries
   })
 
@@ -125,9 +257,9 @@ const FindDispensariesPage = () => {
 
   // Filter dispensaries based on location and discipline
   const filterDispensaries = useCallback(() => {
-    if (!userLocation) return []
+    if (!userLocation || !allDispensaries.length) return []
 
-    let filtered = mockDispensaries.filter(dispensary => {
+    let filtered = allDispensaries.filter(dispensary => {
       const distance = calculateDistance(
         userLocation.lat, 
         userLocation.lng, 
@@ -148,7 +280,7 @@ const FindDispensariesPage = () => {
     }
 
     return filtered
-  }, [userLocation, searchRadius, disciplineFilter])
+  }, [userLocation, searchRadius, disciplineFilter, allDispensaries])
 
   const onMapLoad = useCallback((map) => {
     setMap(map)
@@ -173,6 +305,87 @@ const FindDispensariesPage = () => {
     
     const url = `https://www.google.com/maps/dir/?api=1&destination=${dispensary.location.lat},${dispensary.location.lng}&destination_place_id=${dispensary.name}`
     window.open(url, '_blank')
+  }
+
+  const requestUserLocation = (saveToDb = false) => {
+    setIsRequestingLocation(true)
+    setLocationError(null)
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const currentPosition = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }
+          setUserLocation(currentPosition)
+          setCenter(currentPosition)
+          setIsRequestingLocation(false)
+          setLocationError(null)
+          
+          // Save to database if requested
+          if (saveToDb) {
+            const saved = await saveLocationToDb(currentPosition)
+            if (!saved) {
+              setLocationError('Location detected but failed to save to database.')
+            }
+          }
+          
+          // Pan map to new location
+          if (map) {
+            map.panTo(currentPosition)
+          }
+        },
+        (error) => {
+          console.error('Error getting current location:', error)
+          let errorMessage = 'Unable to get your current location.'
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location access denied. Please enable location services and try again.'
+              break
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information is unavailable. Consider manually selecting your location.'
+              break
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out. Please try again or select location manually.'
+              break
+            default:
+              errorMessage = 'An unknown error occurred while getting your location.'
+              break
+          }
+          
+          setLocationError(errorMessage)
+          setIsRequestingLocation(false)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      )
+    } else {
+      setLocationError('Geolocation is not supported by your browser. Please select your location manually.')
+      setIsRequestingLocation(false)
+    }
+  }
+
+  // Function to handle map click for manual location selection
+  const handleMapClick = async (event) => {
+    const clickedLocation = {
+      lat: event.latLng.lat(),
+      lng: event.latLng.lng()
+    }
+    
+    setUserLocation(clickedLocation)
+    setCenter(clickedLocation)
+    setLocationError(null)
+    
+    // Save to database
+    const saved = await saveLocationToDb(clickedLocation)
+    if (!saved) {
+      setLocationError('Location selected but failed to save to database.')
+    }
   }
 
   const getDisciplineIcon = (discipline) => {
@@ -202,38 +415,38 @@ const FindDispensariesPage = () => {
   }
 
   useEffect(() => {
-    // Get user's current location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const currentPosition = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          }
-          setUserLocation(currentPosition)
-          setCenter(currentPosition)
-          setIsLoading(false)
-        },
-        (error) => {
-          console.error('Error getting current location:', error)
-          alert('Unable to get your current location. Using default location instead.')
-          setUserLocation(defaultCenter)
-          setIsLoading(false)
-        }
-      )
-    } else {
-      alert('Geolocation is not supported by your browser')
-      setUserLocation(defaultCenter)
+    // First try to get saved location, then fallback to GPS
+    const initializeLocation = async () => {
+      console.log('Initializing location...')
+      
+      const savedLoc = await fetchSavedLocation()
+      if (savedLoc) {
+        console.log('Using saved location from DB:', savedLoc)
+        setUserLocation(savedLoc)
+        setCenter(savedLoc)
+        setLocationError(null)
+      } else {
+        console.log('No saved location found, trying GPS...')
+        // No saved location, try GPS but don't save automatically
+        requestUserLocation(false)
+      }
       setIsLoading(false)
     }
+    
+    initializeLocation()
   }, [])
 
   useEffect(() => {
-    if (userLocation) {
+    // Fetch dispensaries when component mounts
+    fetchDispensaries()
+  }, [])
+
+  useEffect(() => {
+    if (userLocation && allDispensaries.length > 0) {
       const filtered = filterDispensaries()
       setNearbyDispensaries(filtered)
     }
-  }, [userLocation, searchRadius, disciplineFilter, filterDispensaries])
+  }, [userLocation, searchRadius, disciplineFilter, allDispensaries, filterDispensaries])
 
   return (
     <div className="py-8">
@@ -277,28 +490,169 @@ const FindDispensariesPage = () => {
                   <option value="western">Western Medicine</option>
                 </select>
               </div>
+
+              {/* Location Controls */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Location Settings</h3>
+                
+                {locationError && (
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-sm text-red-700">{locationError}</p>
+                  </div>
+                )}
+
+                {isLoadingSavedLocation && (
+                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      <p className="text-sm text-blue-700">Loading your saved location...</p>
+                    </div>
+                  </div>
+                )}
+
+                {isSavingLocation && (
+                  <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-2"></div>
+                      <p className="text-sm text-green-700">Saving location...</p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-3">
+                  {/* Current Location Status */}
+                  {userLocation && (
+                    <div className="p-3 bg-white border border-gray-200 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Current Location</p>
+                          <p className="text-xs text-gray-600">
+                            {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
+                            {savedLocation && userLocation.lat === savedLocation.lat && userLocation.lng === savedLocation.lng && (
+                              <span className="ml-2 text-green-600">(Saved in DB)</span>
+                            )}
+                          </p>
+                        </div>
+                        <FaMapMarkerAlt className="text-primary-600" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Saved Location Option */}
+                  {savedLocation && (userLocation?.lat !== savedLocation.lat || userLocation?.lng !== savedLocation.lng) && (
+                    <button
+                      onClick={useSavedLocation}
+                      className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      <FaMapMarkerAlt className="mr-2" />
+                      Use My Saved Location
+                    </button>
+                  )}
+
+                  {/* Location Options Toggle */}
+                  <button
+                    onClick={() => setShowLocationOptions(!showLocationOptions)}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+                  >
+                    <FaLocationArrow className="mr-2" />
+                    {showLocationOptions ? 'Hide' : 'Show'} Location Options
+                  </button>
+
+                  {/* Expanded Location Options */}
+                  {showLocationOptions && (
+                    <div className="space-y-2 p-3 bg-white border border-gray-200 rounded-md">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Choose Location Method:</h4>
+                      
+                      <button
+                        onClick={useGpsLocationTemporary}
+                        disabled={isRequestingLocation}
+                        className="w-full flex items-center justify-center px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isRequestingLocation ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                            Getting GPS...
+                          </>
+                        ) : (
+                          <>
+                            <FaLocationArrow className="mr-2" size={12} />
+                            Use GPS (This Time Only)
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={useGpsLocationAndSave}
+                        disabled={isRequestingLocation || isSavingLocation}
+                        className="w-full flex items-center justify-center px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isRequestingLocation || isSavingLocation ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                            {isSavingLocation ? 'Saving...' : 'Getting GPS...'}
+                          </>
+                        ) : (
+                          <>
+                            <FaLocationArrow className="mr-2" size={12} />
+                            Use GPS & Save to Profile
+                          </>
+                        )}
+                      </button>
+
+                      <div className="pt-2 border-t border-gray-200">
+                        <p className="text-xs text-gray-600 mb-2">
+                          <strong>Manual Selection:</strong> Click anywhere on the map to set your location
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
               
               <div className="flex items-center text-gray-600 text-sm mt-6">
                 <FaMapMarkerAlt className="text-primary-600 mr-2" />
-                {userLocation ? (
-                  <span>Showing results near your current location</span>
+                {isLoadingSavedLocation ? (
+                  <span>Loading your saved location...</span>
+                ) : userLocation ? (
+                  <span>
+                    Showing results near your {savedLocation && 
+                    userLocation.lat === savedLocation.lat && 
+                    userLocation.lng === savedLocation.lng ? 'saved' : 'current'} location
+                  </span>
                 ) : (
-                  <span>Waiting for your location...</span>
+                  <span>Please set your location to find nearby dispensaries</span>
                 )}
               </div>
             </div>
             
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">
-                Nearby Dispensaries 
-                {!isLoading && (
-                  <span className="text-sm font-normal text-gray-500 ml-2">
-                    ({nearbyDispensaries.length} found)
-                  </span>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">
+                  Nearby Dispensaries 
+                  {!isLoading && !isLoadingDispensaries && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({nearbyDispensaries.length} found)
+                    </span>
+                  )}
+                </h2>
+                
+                {isLoadingDispensaries && (
+                  <div className="flex items-center text-sm text-gray-500">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+                    Loading dispensaries...
+                  </div>
                 )}
-              </h2>
+              </div>
               
-              {isLoading ? (
+              {/* Data Source Info */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> Currently showing sample data. In production, this will display 
+                  real dispensaries from your database based on their registered locations and specialties.
+                </p>
+              </div>
+              
+              {isLoading || isLoadingDispensaries ? (
                 <div className="flex justify-center items-center h-40">
                   <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
                 </div>
@@ -375,8 +729,22 @@ const FindDispensariesPage = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No dispensaries found within {searchRadius}km.</p>
-                  <p className="text-gray-500 mt-2">Try increasing your search radius or changing filters.</p>
+                  {!userLocation ? (
+                    <div>
+                      <p className="text-gray-500">Please allow location access to find nearby dispensaries.</p>
+                      <p className="text-gray-500 mt-2">Click the "Get My Location" button above to enable location services.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-gray-500">No dispensaries found within {searchRadius}km of your location.</p>
+                      <p className="text-gray-500 mt-2">Try increasing your search radius or changing filters.</p>
+                      {allDispensaries.length === 0 && (
+                        <p className="text-gray-500 mt-2 text-sm">
+                          (In production, this will search your actual dispensary database)
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -395,6 +763,7 @@ const FindDispensariesPage = () => {
                     zoom={13}
                     onLoad={onMapLoad}
                     onUnmount={onUnmount}
+                    onClick={handleMapClick}
                     options={{
                       streetViewControl: false,
                       mapTypeControl: false,
@@ -508,26 +877,35 @@ const FindDispensariesPage = () => {
                 </div>
               )}
               
-              <div className="mt-4 flex flex-wrap gap-4">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
-                  <span className="text-sm text-gray-600">Your Location</span>
+              <div className="mt-4 space-y-3">
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                    <span className="text-sm text-gray-600">Your Location</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                    <span className="text-sm text-gray-600">Ayurvedic</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                    <span className="text-sm text-gray-600">Homeopathic</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                    <span className="text-sm text-gray-600">Western</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 border-2 border-blue-500 bg-blue-100 bg-opacity-30 rounded-full mr-2"></div>
+                    <span className="text-sm text-gray-600">{searchRadius}km Radius</span>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-                  <span className="text-sm text-gray-600">Ayurvedic</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
-                  <span className="text-sm text-gray-600">Homeopathic</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
-                  <span className="text-sm text-gray-600">Western</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 border-2 border-blue-500 bg-blue-100 bg-opacity-30 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">{searchRadius}km Radius</span>
+                
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    <strong>Tip:</strong> Click anywhere on the map to manually set your location. 
+                    This is often more accurate than GPS on desktop computers.
+                  </p>
                 </div>
               </div>
             </div>
