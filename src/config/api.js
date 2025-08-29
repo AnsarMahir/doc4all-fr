@@ -23,7 +23,10 @@ export const API_CONFIG = {
       DASHBOARD: '/doctor/dashboard',
       PRESCRIPTIONS: '/doctor/prescriptions',
       PROFILE: '/doctor/profile',
-      PROFILE_STATUS: '/doctor/profile-status'
+      PROFILE_STATUS: '/doctor/profile-status',
+      INVITATIONS: '/doctor/invitations',
+      RESPOND_INVITATION: '/doctor/invitations/respond',
+      SCHEDULES: '/doctor/schedules'
     },
     // Patient endpoints
     PATIENT: {
@@ -39,8 +42,11 @@ export const API_CONFIG = {
       DISPENSARY_DETAILS: (id) => `/dispensaries/${id}`,
       PROFILE: '/dispensary/profile',
       COMPLETE_PROFILE: '/dispensary/complete-profile',
-      CHECK_PROFILE_STATUS: '/dispensary/profile-status'
-    }
+      CHECK_PROFILE_STATUS: '/dispensary/profile-status',
+      INVITATIONS: '/dispensary/invitations'
+    },
+    // Doctor list endpoint
+    DOCTORS: '/doctor'
   }
 }
 

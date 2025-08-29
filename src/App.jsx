@@ -18,6 +18,8 @@ import DashboardLayout from './components/layout/DashboardLayout'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import ProfilePage from './pages/dashboard/ProfilePage'
 import DispensaryProfilePage from './pages/dashboard/DispensaryProfilePage'
+import InviteDoctorsPage from './pages/dashboard/InviteDoctorsPage'
+import DoctorInvitationsPage from './pages/dashboard/DoctorInvitationsPage'
 
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -122,7 +124,7 @@ function App() {
                             <Routes>
                               <Route path="/profile" element={<DispensaryProfilePage />} />
                               <Route path="/location" element={<div>Update Location (Coming Soon)</div>} />
-                              <Route path="/invite-doctors" element={<div>Invite Doctors (Coming Soon)</div>} />
+                              <Route path="/invite-doctors" element={<InviteDoctorsPage />} />
                               <Route path="/doctors" element={<div>My Doctors (Coming Soon)</div>} />
                               <Route path="/prescriptions" element={<div>Prescriptions (Coming Soon)</div>} />
                               <Route path="/settings" element={<div>Settings (Coming Soon)</div>} />
@@ -134,7 +136,7 @@ function App() {
                         <Route path="/doctor/*" element={
                           <ProtectedRoute requiredRole="DOCTOR">
                             <Routes>
-                              <Route path="/invitations" element={<div>Invitations (Coming Soon)</div>} />
+                              <Route path="/invitations" element={<DoctorInvitationsPage />} />
                               <Route path="/dispensaries" element={<div>My Dispensaries (Coming Soon)</div>} />
                               <Route path="/patients" element={<div>My Patients (Coming Soon)</div>} />
                               <Route path="/prescriptions" element={<div>Prescriptions (Coming Soon)</div>} />
