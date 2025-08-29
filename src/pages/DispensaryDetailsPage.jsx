@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaLeaf, FaYinYang, FaHospital, FaMosque, FaArrowLeft } from 'react-icons/fa'
+import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaLeaf, FaYinYang, FaHospital, FaMosque, FaArrowLeft, FaStar, FaClock, FaCalendarAlt, FaUserMd, FaGraduationCap, FaStethoscope } from 'react-icons/fa'
 import { API_CONFIG, buildUrl } from '../config/api'
 import { useApi } from '../hooks/useApi'
 
@@ -33,12 +33,16 @@ const DispensaryDetailsPage = () => {
   const [dispensary, setDispensary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [selectedSchedule, setSelectedSchedule] = useState(null)
+  const [slots, setSlots] = useState([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
 
   useEffect(() => {
     const fetchDispensaryDetails = async () => {
       try {
         setLoading(true)
-        const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.DISPENSARY_DETAILS(id)))
+        const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.DISPENSARY_DETAILS_WITH_DOCTORS(id, selectedDate)))
         setDispensary(response)
       } catch (err) {
         setError('Failed to fetch dispensary details')
@@ -51,7 +55,43 @@ const DispensaryDetailsPage = () => {
     if (id) {
       fetchDispensaryDetails()
     }
-  }, [id]) // Remove get from dependency array
+  }, [id, selectedDate]) // Re-fetch when date changes
+
+  const fetchSlots = async (scheduleId) => {
+    try {
+      setLoadingSlots(true)
+      const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.SCHEDULE_SLOTS(scheduleId, selectedDate)))
+      setSlots(response || [])
+      setSelectedSchedule(scheduleId)
+    } catch (err) {
+      console.error('Error fetching slots:', err)
+      setSlots([])
+    } finally {
+      setLoadingSlots(false)
+    }
+  }
+
+  const formatTime = (timeString) => {
+    if (!timeString) return ''
+    const [hours, minutes] = timeString.split(':')
+    const hour = parseInt(hours)
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour % 12 || 12
+    return `${displayHour}:${minutes} ${ampm}`
+  }
+
+  const getDayName = (dayOfWeek) => {
+    const days = {
+      'MONDAY': 'Monday',
+      'TUESDAY': 'Tuesday', 
+      'WEDNESDAY': 'Wednesday',
+      'THURSDAY': 'Thursday',
+      'FRIDAY': 'Friday',
+      'SATURDAY': 'Saturday',
+      'SUNDAY': 'Sunday'
+    }
+    return days[dayOfWeek] || dayOfWeek
+  }
 
   if (loading) {
     return (
@@ -119,6 +159,19 @@ const DispensaryDetailsPage = () => {
 
           {/* Content */}
           <div className="p-6">
+            {/* Rating Display */}
+            {dispensary.rating && (
+              <div className="flex items-center justify-center mb-6">
+                <div className="bg-yellow-50 rounded-lg p-4 flex items-center">
+                  <FaStar className="text-yellow-400 text-2xl mr-3" />
+                  <div>
+                    <span className="text-2xl font-bold text-gray-800">{dispensary.rating.toFixed(1)}</span>
+                    <span className="text-gray-600 ml-2">Overall Rating</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid md:grid-cols-2 gap-8">
               {/* Left Column - Basic Info */}
               <div>
@@ -136,20 +189,20 @@ const DispensaryDetailsPage = () => {
                     <span>{dispensary.address}</span>
                   </div>
                   
-                  {dispensary.phoneNumber && (
+                  {dispensary.contactNumber && (
                     <div className="flex items-center">
                       <FaPhone className="text-primary-600 mr-3" />
-                      <a href={`tel:${dispensary.phoneNumber}`} className="text-primary-600 hover:underline">
-                        {dispensary.phoneNumber}
+                      <a href={`tel:${dispensary.contactNumber}`} className="text-primary-600 hover:underline">
+                        {dispensary.contactNumber}
                       </a>
                     </div>
                   )}
                   
-                  {dispensary.email && (
+                  {dispensary.website && (
                     <div className="flex items-center">
                       <FaEnvelope className="text-primary-600 mr-3" />
-                      <a href={`mailto:${dispensary.email}`} className="text-primary-600 hover:underline">
-                        {dispensary.email}
+                      <a href={dispensary.website} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
+                        Visit Website
                       </a>
                     </div>
                   )}
@@ -202,6 +255,114 @@ const DispensaryDetailsPage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Doctors and Booking Section */}
+            {dispensary.approvedDoctors && dispensary.approvedDoctors.length > 0 && (
+              <div className="mt-12">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-semibold">Available Doctors & Booking</h2>
+                  <div className="flex items-center">
+                    <FaCalendarAlt className="text-gray-500 mr-2" />
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-6">
+                  {dispensary.approvedDoctors.map(doctor => (
+                    <div key={doctor.scheduleId} className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2 flex items-center">
+                            <FaUserMd className="text-primary-600 mr-2" />
+                            {doctor.doctorName}
+                          </h3>
+                          <p className="text-gray-600 mb-2">{doctor.doctorEmail}</p>
+                          
+                          {doctor.specialities && (
+                            <div className="mb-3">
+                              <div className="flex items-center mb-1">
+                                <FaStethoscope className="text-gray-500 mr-2 text-sm" />
+                                <span className="font-medium text-sm">Specialities:</span>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {doctor.specialities.split(',').map((specialty, index) => (
+                                  <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                    {specialty.trim()}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {doctor.education && (
+                            <div className="mb-3">
+                              <div className="flex items-center">
+                                <FaGraduationCap className="text-gray-500 mr-2 text-sm" />
+                                <span className="text-sm text-gray-600">{doctor.education}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center text-sm text-gray-600 mb-2">
+                            <FaClock className="mr-2" />
+                            <span>
+                              {getDayName(doctor.day)} • {formatTime(doctor.startTime)} - {formatTime(doctor.endTime)}
+                            </span>
+                          </div>
+
+                          {doctor.rate && (
+                            <div className="text-lg font-semibold text-green-600">
+                              ${doctor.rate} per consultation
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => fetchSlots(doctor.scheduleId)}
+                          disabled={loadingSlots}
+                          className="btn-primary"
+                        >
+                          {loadingSlots && selectedSchedule === doctor.scheduleId ? 'Loading...' : 'View Available Slots'}
+                        </button>
+                      </div>
+
+                      {/* Slots Display */}
+                      {selectedSchedule === doctor.scheduleId && (
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium mb-3">Available Slots for {selectedDate}</h4>
+                          {slots.length > 0 ? (
+                            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                              {slots.map((slot, index) => (
+                                <button
+                                  key={index}
+                                  className="p-2 text-sm border border-primary-300 rounded-md hover:bg-primary-100 transition-colors"
+                                  onClick={() => {
+                                    // TODO: Handle slot booking
+                                    console.log('Selected slot:', slot)
+                                  }}
+                                >
+                                  {formatTime(slot.startTime)}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-sm">No available slots for this date.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

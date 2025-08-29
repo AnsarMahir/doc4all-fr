@@ -40,6 +40,8 @@ export const API_CONFIG = {
       DASHBOARD: '/dispensary/dashboard',
       DISPENSARIES: '/dispensary',
       DISPENSARY_DETAILS: (id) => `/dispensary/${id}`,
+      DISPENSARY_DETAILS_WITH_DOCTORS: (id, date) => `/dispensary/${id}/details${date ? `?date=${date}` : ''}`,
+      SCHEDULE_SLOTS: (scheduleId, date) => `/dispensary/schedules/${scheduleId}/slots?date=${date}`,
       PROFILE: '/dispensary/profile',
       COMPLETE_PROFILE: '/dispensary/complete-profile',
       CHECK_PROFILE_STATUS: '/dispensary/profile-status',
