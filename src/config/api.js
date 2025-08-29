@@ -21,7 +21,9 @@ export const API_CONFIG = {
     // Doctor endpoints
     DOCTOR: {
       DASHBOARD: '/doctor/dashboard',
-      PRESCRIPTIONS: '/doctor/prescriptions'
+      PRESCRIPTIONS: '/doctor/prescriptions',
+      PROFILE: '/doctor/profile',
+      PROFILE_STATUS: '/doctor/profile-status'
     },
     // Patient endpoints
     PATIENT: {

@@ -14,9 +14,9 @@ export const useProfileCompletion = () => {
   })
 
   useEffect(() => {
-    // Only check for dispensary users and if profileCompleted is null (unknown)
+    // Only check for dispensary and doctor users and if profileCompleted is null (unknown)
     if (!user) return;
-    if (!hasRole('DISPENSARY')) {
+    if (!hasRole('DISPENSARY') && !hasRole('DOCTOR')) {
       setProfileStatus({
         isComplete: true,
         loading: false,
@@ -35,9 +35,19 @@ export const useProfileCompletion = () => {
     // Only call API if unknown
     const checkProfileStatus = async () => {
       try {
-        const response = await apiCall(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.CHECK_PROFILE_STATUS), {
+        let endpoint, body = {}
+        
+        if (hasRole('DISPENSARY')) {
+          endpoint = buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.CHECK_PROFILE_STATUS)
+          body = { email: user?.email }
+        } else if (hasRole('DOCTOR')) {
+          endpoint = buildUrl(API_CONFIG.ENDPOINTS.DOCTOR.PROFILE_STATUS)
+          // For doctor, no email needed according to requirements
+        }
+        
+        const response = await apiCall(endpoint, {
           method: 'POST',
-          body: JSON.stringify({ email: user?.email })
+          body: JSON.stringify(body)
         })
         if (!response.ok) {
           throw new Error('Failed to check profile status')
