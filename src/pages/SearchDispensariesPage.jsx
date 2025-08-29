@@ -75,7 +75,7 @@ const SearchDispensariesPage = () => {
       const query = searchQuery.toLowerCase()
       results = results.filter(d => 
         d.name.toLowerCase().includes(query) ||
-        d.description.toLowerCase().includes(query) ||
+        (d.description && d.description.toLowerCase().includes(query)) ||
         d.location.toLowerCase().includes(query)
       )
     }
@@ -241,7 +241,9 @@ const SearchDispensariesPage = () => {
                         </span>
                       </div>
                     </div>
-                    <p className="text-gray-600 mb-4">{dispensary.description}</p>
+                    {dispensary.description && (
+                      <p className="text-gray-600 mb-4">{dispensary.description}</p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         {disciplines.find(d => d.id === dispensary.discipline)?.icon}
