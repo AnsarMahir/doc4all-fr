@@ -1,74 +1,77 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { FaSearch, FaLeaf, FaYinYang, FaHospital, FaStar, FaMapMarkerAlt, FaFilter } from 'react-icons/fa'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { FaSearch, FaLeaf, FaYinYang, FaHospital, FaStar, FaMapMarkerAlt, FaFilter, FaMosque } from 'react-icons/fa'
+import { API_CONFIG, buildUrl } from '../config/api'
+import { useApi } from '../hooks/useApi'
 
-// Using the same mock data as BrowseDispensariesPage
-const mockDispensaries = [
-  {
-    id: 1,
-    name: "Wellness Ayurveda Center",
-    location: "123 Kahatwoita St, Nittambuwa, WP",
-    discipline: "ayurvedic",
-    rating: 4.8,
-    reviewCount: 124,
-    image: "https://images.unsplash.com/photo-1731597076108-f3bbe268162f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-    recommended: true,
-    featured: true
-  },
-  {
-    id: 2,
-    name: "Homeopathic Harmony",
-    location: "456 Nawala Way, Colombo, WP",
-    discipline: "homeopathic",
-    rating: 4.5,
-    reviewCount: 89,
-    image: "https://images.unsplash.com/photo-1512867957657-38dbae50a35b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-    recommended: true,
-    featured: false
-  },
-  {
-    id: 3,
-    name: "City Medical Center",
-    location: "789 Bogaha Road, Colombo 8, WP",
-    discipline: "western",
-    rating: 4.7,
-    reviewCount: 215,
-    image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
-    recommended: false,
-    featured: true
-  },
-  // Add more mock dispensaries as needed...
-]
+// Mock images for dispensaries (since we don't provide images)
+const getDispensaryImage = (type) => {
+  const images = {
+    Ayurvedic: "https://images.unsplash.com/photo-1731597076108-f3bbe268162f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+    Homeopathy: "https://images.unsplash.com/photo-1512867957657-38dbae50a35b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+    Western: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80",
+    Unani: "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80"
+  }
+  return images[type] || images.Western
+}
 
 const SearchDispensariesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const { get } = useApi()
+  
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
-  const [selectedDisciplines, setSelectedDisciplines] = useState([])
-  const [minRating, setMinRating] = useState(0)
+  const [selectedTypes, setSelectedTypes] = useState([])
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState('relevance')
+  const [dispensaries, setDispensaries] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const disciplines = [
-    { id: 'ayurvedic', name: 'Ayurvedic Medicine', icon: <FaLeaf className="text-green-600" /> },
-    { id: 'homeopathic', name: 'Homeopathic Treatment', icon: <FaYinYang className="text-blue-600" /> },
-    { id: 'western', name: 'Western Medicine', icon: <FaHospital className="text-red-600" /> }
+  const treatmentTypes = [
+    { id: 'Ayurvedic', name: 'Ayurvedic Medicine', icon: <FaLeaf className="text-green-600" /> },
+    { id: 'Homeopathy', name: 'Homeopathic Treatment', icon: <FaYinYang className="text-blue-600" /> },
+    { id: 'Western', name: 'Western Medicine', icon: <FaHospital className="text-red-600" /> },
+    { id: 'Unani', name: 'Unani Medicine', icon: <FaMosque className="text-purple-600" /> }
   ]
+
+  // Fetch dispensaries from API
+  useEffect(() => {
+    const fetchDispensaries = async () => {
+      try {
+        setLoading(true)
+        const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.DISPENSARIES))
+        setDispensaries(response || [])
+      } catch (err) {
+        setError('Failed to fetch dispensaries')
+        console.error('Error fetching dispensaries:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDispensaries()
+  }, []) // Remove get from dependency array
 
   const handleSearch = (e) => {
     e.preventDefault()
     setSearchParams({ q: searchQuery })
   }
 
-  const toggleDiscipline = (disciplineId) => {
-    setSelectedDisciplines(prev => 
-      prev.includes(disciplineId)
-        ? prev.filter(d => d !== disciplineId)
-        : [...prev, disciplineId]
+  const toggleType = (typeId) => {
+    setSelectedTypes(prev => 
+      prev.includes(typeId)
+        ? prev.filter(d => d !== typeId)
+        : [...prev, typeId]
     )
   }
 
+  const handleViewDetails = (dispensaryId) => {
+    navigate(`/dispensary/${dispensaryId}`)
+  }
+
   const filterDispensaries = () => {
-    let results = [...mockDispensaries]
+    let results = [...dispensaries]
 
     // Filter by search query
     if (searchQuery) {
@@ -76,35 +79,73 @@ const SearchDispensariesPage = () => {
       results = results.filter(d => 
         d.name.toLowerCase().includes(query) ||
         (d.description && d.description.toLowerCase().includes(query)) ||
-        d.location.toLowerCase().includes(query)
+        d.address.toLowerCase().includes(query) ||
+        d.type.toLowerCase().includes(query)
       )
     }
 
-    // Filter by selected disciplines
-    if (selectedDisciplines.length > 0) {
-      results = results.filter(d => selectedDisciplines.includes(d.discipline))
-    }
-
-    // Filter by minimum rating
-    if (minRating > 0) {
-      results = results.filter(d => d.rating >= minRating)
+    // Filter by selected types
+    if (selectedTypes.length > 0) {
+      results = results.filter(d => selectedTypes.includes(d.type))
     }
 
     // Sort results
     switch (sortBy) {
+      case 'name':
+        results.sort((a, b) => a.name.localeCompare(b.name))
+        break
+      case 'type':
+        results.sort((a, b) => a.type.localeCompare(b.type))
+        break
       case 'rating':
-        results.sort((a, b) => b.rating - a.rating)
+        results.sort((a, b) => {
+          const ratingA = a.rating || 0
+          const ratingB = b.rating || 0
+          return ratingB - ratingA // Highest rating first
+        })
         break
-      case 'reviews':
-        results.sort((a, b) => b.reviewCount - a.reviewCount)
+      default:
+        // Keep original order for relevance
         break
-      // Add more sorting options as needed
     }
 
     return results
   }
 
   const filteredDispensaries = filterDispensaries()
+
+  if (loading) {
+    return (
+      <div className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading dispensaries...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-12">
+            <p className="text-red-600 text-lg mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="btn-primary"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="py-8">
@@ -144,44 +185,26 @@ const SearchDispensariesPage = () => {
               </div>
 
               <div className={`${showFilters ? 'block' : 'hidden'} md:block`}>
-                {/* Treatment Disciplines */}
+                {/* Treatment Types */}
                 <div className="mb-6">
-                  <h3 className="font-medium mb-3">Treatment Discipline</h3>
-                  {disciplines.map(discipline => (
+                  <h3 className="font-medium mb-3">Treatment Type</h3>
+                  {treatmentTypes.map(type => (
                     <label
-                      key={discipline.id}
+                      key={type.id}
                       className="flex items-center space-x-2 mb-2 cursor-pointer"
                     >
                       <input
                         type="checkbox"
-                        checked={selectedDisciplines.includes(discipline.id)}
-                        onChange={() => toggleDiscipline(discipline.id)}
+                        checked={selectedTypes.includes(type.id)}
+                        onChange={() => toggleType(type.id)}
                         className="rounded text-primary-600 focus:ring-primary-500"
                       />
                       <span className="flex items-center">
-                        {discipline.icon}
-                        <span className="ml-2">{discipline.name}</span>
+                        {type.icon}
+                        <span className="ml-2">{type.name}</span>
                       </span>
                     </label>
                   ))}
-                </div>
-
-                {/* Minimum Rating */}
-                <div className="mb-6">
-                  <h3 className="font-medium mb-3">Minimum Rating</h3>
-                  <input
-                    type="range"
-                    min="0"
-                    max="5"
-                    step="0.5"
-                    value={minRating}
-                    onChange={(e) => setMinRating(parseFloat(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Any</span>
-                    <span>{minRating} ★</span>
-                  </div>
                 </div>
 
                 {/* Sort By */}
@@ -193,8 +216,9 @@ const SearchDispensariesPage = () => {
                     className="w-full rounded-md border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-200"
                   >
                     <option value="relevance">Relevance</option>
-                    <option value="rating">Rating</option>
-                    <option value="reviews">Number of Reviews</option>
+                    <option value="name">Name</option>
+                    <option value="type">Type</option>
+                    <option value="rating">Rating (High to Low)</option>
                   </select>
                 </div>
               </div>
@@ -217,7 +241,7 @@ const SearchDispensariesPage = () => {
                 >
                   <div className="w-48 h-48 flex-shrink-0">
                     <img
-                      src={dispensary.image}
+                      src={getDispensaryImage(dispensary.type)}
                       alt={dispensary.name}
                       className="w-full h-full object-cover"
                     />
@@ -228,30 +252,43 @@ const SearchDispensariesPage = () => {
                         <h3 className="text-xl font-semibold mb-2">{dispensary.name}</h3>
                         <div className="flex items-center text-sm text-gray-600 mb-2">
                           <FaMapMarkerAlt className="mr-1" />
-                          {dispensary.location}
+                          {dispensary.address}
                         </div>
+                        {dispensary.phoneNumber && (
+                          <div className="text-sm text-gray-600 mb-2">
+                            Phone: {dispensary.phoneNumber}
+                          </div>
+                        )}
+                        {dispensary.email && (
+                          <div className="text-sm text-gray-600 mb-2">
+                            Email: {dispensary.email}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center">
-                        <div className="flex items-center mr-2">
-                          <FaStar className="text-yellow-400" />
-                          <span className="ml-1 font-medium">{dispensary.rating}</span>
+                      {/* Rating Display */}
+                      {dispensary.rating && (
+                        <div className="flex items-center">
+                          <div className="flex items-center mr-2">
+                            <FaStar className="text-yellow-400" />
+                            <span className="ml-1 font-medium">{dispensary.rating.toFixed(1)}</span>
+                          </div>
                         </div>
-                        <span className="text-sm text-gray-500">
-                          ({dispensary.reviewCount} reviews)
-                        </span>
-                      </div>
+                      )}
                     </div>
                     {dispensary.description && (
                       <p className="text-gray-600 mb-4">{dispensary.description}</p>
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        {disciplines.find(d => d.id === dispensary.discipline)?.icon}
+                        {treatmentTypes.find(t => t.id === dispensary.type)?.icon}
                         <span className="ml-2 text-sm">
-                          {disciplines.find(d => d.id === dispensary.discipline)?.name}
+                          {treatmentTypes.find(t => t.id === dispensary.type)?.name}
                         </span>
                       </div>
-                      <button className="btn-primary">
+                      <button 
+                        onClick={() => handleViewDetails(dispensary.id)}
+                        className="btn-primary"
+                      >
                         View Details
                       </button>
                     </div>
