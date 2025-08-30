@@ -47,6 +47,18 @@ export const useDoctorInvitations = () => {
     }
   }
 
+  // Revoke invitation
+  const revokeInvitation = async (invitationId) => {
+    try {
+      const response = await post(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.REVOKE_INVITATION(invitationId)))
+      await fetchInvitations() // Refresh invitations list
+      return response
+    } catch (err) {
+      console.error('Failed to revoke invitation:', err)
+      throw err
+    }
+  }
+
   // Load data on mount
   useEffect(() => {
     fetchDoctors()
@@ -61,6 +73,7 @@ export const useDoctorInvitations = () => {
     loading,
     error,
     sendInvitation,
+    revokeInvitation,
     refreshDoctors: fetchDoctors,
     refreshInvitations: fetchInvitations
   }

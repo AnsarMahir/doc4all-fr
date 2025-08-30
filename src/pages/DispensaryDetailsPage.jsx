@@ -38,11 +38,18 @@ const DispensaryDetailsPage = () => {
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
 
+  // Clear selected schedule and slots when date changes
+  useEffect(() => {
+    setSelectedSchedule(null)
+    setSlots([])
+  }, [selectedDate])
+
   useEffect(() => {
     const fetchDispensaryDetails = async () => {
       try {
         setLoading(true)
-        const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.DISPENSARY_DETAILS_WITH_DOCTORS(id, selectedDate)))
+        // Fetch initial data without date parameter to avoid re-renders
+        const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.DISPENSARY_DETAILS_WITH_DOCTORS(id)))
         setDispensary(response)
       } catch (err) {
         setError('Failed to fetch dispensary details')
@@ -55,7 +62,7 @@ const DispensaryDetailsPage = () => {
     if (id) {
       fetchDispensaryDetails()
     }
-  }, [id, selectedDate]) // Re-fetch when date changes
+  }, [id]) // Only depend on id, not selectedDate
 
   const fetchSlots = async (scheduleId) => {
     try {
@@ -80,6 +87,38 @@ const DispensaryDetailsPage = () => {
     return `${displayHour}:${minutes} ${ampm}`
   }
 
+  const generateTimeSlots = (startTime, endTime, perPatientMinutes) => {
+    const slots = []
+    const [startHours, startMinutes] = startTime.split(':').map(Number)
+    const [endHours, endMinutes] = endTime.split(':').map(Number)
+    
+    const startTotalMinutes = startHours * 60 + startMinutes
+    const endTotalMinutes = endHours * 60 + endMinutes
+    
+    for (let currentMinutes = startTotalMinutes; currentMinutes < endTotalMinutes; currentMinutes += perPatientMinutes) {
+      const slotEndMinutes = currentMinutes + perPatientMinutes
+      
+      // Don't create slot if it goes beyond end time
+      if (slotEndMinutes > endTotalMinutes) break
+      
+      const slotStartHours = Math.floor(currentMinutes / 60)
+      const slotStartMins = currentMinutes % 60
+      const slotEndHours = Math.floor(slotEndMinutes / 60)
+      const slotEndMinsValue = slotEndMinutes % 60
+      
+      const startTimeStr = `${slotStartHours.toString().padStart(2, '0')}:${slotStartMins.toString().padStart(2, '0')}`
+      const endTimeStr = `${slotEndHours.toString().padStart(2, '0')}:${slotEndMinsValue.toString().padStart(2, '0')}`
+      
+      slots.push({
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        displayTime: `${formatTime(startTimeStr)} - ${formatTime(endTimeStr)}`
+      })
+    }
+    
+    return slots
+  }
+
   const getDayName = (dayOfWeek) => {
     const days = {
       'MONDAY': 'Monday',
@@ -91,6 +130,17 @@ const DispensaryDetailsPage = () => {
       'SUNDAY': 'Sunday'
     }
     return days[dayOfWeek] || dayOfWeek
+  }
+
+  const getSelectedDateDayOfWeek = (dateString) => {
+    const date = new Date(dateString)
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+    return days[date.getDay()]
+  }
+
+  const isDoctorAvailableOnSelectedDate = (doctorDay, selectedDate) => {
+    const selectedDayOfWeek = getSelectedDateDayOfWeek(selectedDate)
+    return doctorDay === selectedDayOfWeek
   }
 
   if (loading) {
@@ -325,31 +375,41 @@ const DispensaryDetailsPage = () => {
                       </div>
 
                       <div className="flex gap-4">
-                        <button
-                          onClick={() => fetchSlots(doctor.scheduleId)}
-                          disabled={loadingSlots}
-                          className="btn-primary"
-                        >
-                          {loadingSlots && selectedSchedule === doctor.scheduleId ? 'Loading...' : 'View Available Slots'}
-                        </button>
+                        {isDoctorAvailableOnSelectedDate(doctor.day, selectedDate) ? (
+                          <button
+                            onClick={() => {
+                              const generatedSlots = generateTimeSlots(doctor.startTime, doctor.endTime, doctor.perPatientMinutes)
+                              setSlots(generatedSlots)
+                              setSelectedSchedule(doctor.scheduleId)
+                            }}
+                            className="btn-primary"
+                          >
+                            View Available Slots
+                          </button>
+                        ) : (
+                          <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-md">
+                            Doctor not available on {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })}. 
+                            Available on {getDayName(doctor.day)}s only.
+                          </div>
+                        )}
                       </div>
 
                       {/* Slots Display */}
-                      {selectedSchedule === doctor.scheduleId && (
+                      {selectedSchedule === doctor.scheduleId && isDoctorAvailableOnSelectedDate(doctor.day, selectedDate) && (
                         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                           <h4 className="font-medium mb-3">Available Slots for {selectedDate}</h4>
                           {slots.length > 0 ? (
-                            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {slots.map((slot, index) => (
                                 <button
                                   key={index}
-                                  className="p-2 text-sm border border-primary-300 rounded-md hover:bg-primary-100 transition-colors"
+                                  className="p-3 text-sm border border-primary-300 rounded-md hover:bg-primary-100 transition-colors text-center"
                                   onClick={() => {
                                     // TODO: Handle slot booking
                                     console.log('Selected slot:', slot)
                                   }}
                                 >
-                                  {formatTime(slot.startTime)}
+                                  {slot.displayTime}
                                 </button>
                               ))}
                             </div>

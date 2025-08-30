@@ -4,7 +4,7 @@ import { useDoctorInvitations } from '../../hooks/useDoctorInvitations'
 import { useNotification } from '../../hooks/useNotification'
 
 const InviteDoctorsPage = () => {
-  const { doctors, invitations, loadingDoctors, loadingInvitations, sendInvitation } = useDoctorInvitations()
+  const { doctors, invitations, loadingDoctors, loadingInvitations, sendInvitation, revokeInvitation } = useDoctorInvitations()
   const { success, error } = useNotification()
   const [selectedDoctor, setSelectedDoctor] = useState(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
@@ -21,6 +21,7 @@ const InviteDoctorsPage = () => {
     endTime: '',
     perPatientMinutes: '',
     offerRate: '',
+    perPatientRate: '',
     status: 'PENDING'
   })
 
@@ -46,6 +47,7 @@ const InviteDoctorsPage = () => {
         endTime: '',
         perPatientMinutes: '',
         offerRate: '',
+        perPatientRate: '',
         status: 'PENDING'
       })
       setSelectedDoctor(null)
@@ -54,9 +56,13 @@ const InviteDoctorsPage = () => {
     }
   }
 
-  const handleRevokeInvitation = (invitationId) => {
-    // TODO: Implement when revoke endpoint is ready
-    error('Revoke functionality will be available soon.')
+  const handleRevokeInvitation = async (invitationId) => {
+    try {
+      await revokeInvitation(invitationId)
+      success('Invitation revoked successfully!')
+    } catch (err) {
+      error('Failed to revoke invitation. Please try again.')
+    }
   }
 
   const getStatusColor = (status) => {
@@ -340,9 +346,25 @@ const InviteDoctorsPage = () => {
                   min="0"
                   step="0.01"
                   value={invitationForm.offerRate}
-                  onChange={(e) => setInvitationForm({...invitationForm, offerRate: parseFloat(e.target.value)})}
+                  onChange={(e) => setInvitationForm({...invitationForm, offerRate: parseFloat(e.target.value) || ''})}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter offer rate"
+                  placeholder="Enter doctor's offer rate"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Per Patient Rate ($)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={invitationForm.perPatientRate}
+                  onChange={(e) => setInvitationForm({...invitationForm, perPatientRate: parseFloat(e.target.value) || ''})}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter per patient rate"
                   required
                 />
               </div>
