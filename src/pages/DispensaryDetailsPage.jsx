@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaLeaf, FaYinYang, FaHospital, FaMosque, FaArrowLeft, FaStar, FaClock, FaCalendarAlt, FaUserMd, FaGraduationCap, FaStethoscope } from 'react-icons/fa'
 import { API_CONFIG, buildUrl } from '../config/api'
 import { useApi } from '../hooks/useApi'
+import { useNotifications } from '../contexts/NotificationContext'
 
 // Mock images for dispensaries (since we don't provide images)
 const getDispensaryImage = (type) => {
@@ -28,7 +29,8 @@ const getTypeIcon = (type) => {
 const DispensaryDetailsPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { get } = useApi()
+  const { get, post } = useApi()
+  const notifications = useNotifications()
   
   const [dispensary, setDispensary] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -37,6 +39,11 @@ const DispensaryDetailsPage = () => {
   const [selectedSchedule, setSelectedSchedule] = useState(null)
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const [bookingLoading, setBookingLoading] = useState(false)
+  const [bookingSuccess, setBookingSuccess] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [selectedSlot, setSelectedSlot] = useState(null)
+  const [selectedScheduleForBooking, setSelectedScheduleForBooking] = useState(null)
 
   // Clear selected schedule and slots when date changes
   useEffect(() => {
@@ -68,14 +75,74 @@ const DispensaryDetailsPage = () => {
     try {
       setLoadingSlots(true)
       const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.SCHEDULE_SLOTS(scheduleId, selectedDate)))
-      setSlots(response || [])
+      
+      // Transform the API response to include display time
+      const slotsWithDisplay = (response || []).map(slot => ({
+        ...slot,
+        displayTime: `${formatTime(slot.start)} - ${formatTime(slot.end)}`
+      }))
+      
+      setSlots(slotsWithDisplay)
       setSelectedSchedule(scheduleId)
     } catch (err) {
       console.error('Error fetching slots:', err)
       setSlots([])
+      notifications.error('Failed to fetch available slots. Please try again.')
     } finally {
       setLoadingSlots(false)
     }
+  }
+
+  const bookAppointment = async (scheduleId, slotStartTime) => {
+    try {
+      setBookingLoading(true)
+      
+      const bookingData = {
+        scheduleId: scheduleId,
+        appointmentDate: selectedDate,
+        slotStartTime: slotStartTime
+      }
+
+      await post(buildUrl(API_CONFIG.ENDPOINTS.PATIENT.BOOKINGS), bookingData)
+      
+      setBookingSuccess(true)
+      notifications.success('Appointment booked successfully!')
+      
+      // Reset success message after 5 seconds
+      setTimeout(() => setBookingSuccess(false), 5000)
+      
+      // Refresh the slots to show updated availability
+      await fetchSlots(scheduleId)
+      
+    } catch (err) {
+      console.error('Error booking appointment:', err)
+      notifications.error(err.message || 'Failed to book appointment. Please try again.')
+    } finally {
+      setBookingLoading(false)
+      setShowConfirmDialog(false)
+      setSelectedSlot(null)
+      setSelectedScheduleForBooking(null)
+    }
+  }
+
+  const handleSlotClick = (slot, scheduleId) => {
+    if (!slot.available) return
+    
+    setSelectedSlot(slot)
+    setSelectedScheduleForBooking(scheduleId)
+    setShowConfirmDialog(true)
+  }
+
+  const confirmBooking = () => {
+    if (selectedSlot && selectedScheduleForBooking) {
+      bookAppointment(selectedScheduleForBooking, selectedSlot.start)
+    }
+  }
+
+  const cancelBooking = () => {
+    setShowConfirmDialog(false)
+    setSelectedSlot(null)
+    setSelectedScheduleForBooking(null)
   }
 
   const formatTime = (timeString) => {
@@ -85,38 +152,6 @@ const DispensaryDetailsPage = () => {
     const ampm = hour >= 12 ? 'PM' : 'AM'
     const displayHour = hour % 12 || 12
     return `${displayHour}:${minutes} ${ampm}`
-  }
-
-  const generateTimeSlots = (startTime, endTime, perPatientMinutes) => {
-    const slots = []
-    const [startHours, startMinutes] = startTime.split(':').map(Number)
-    const [endHours, endMinutes] = endTime.split(':').map(Number)
-    
-    const startTotalMinutes = startHours * 60 + startMinutes
-    const endTotalMinutes = endHours * 60 + endMinutes
-    
-    for (let currentMinutes = startTotalMinutes; currentMinutes < endTotalMinutes; currentMinutes += perPatientMinutes) {
-      const slotEndMinutes = currentMinutes + perPatientMinutes
-      
-      // Don't create slot if it goes beyond end time
-      if (slotEndMinutes > endTotalMinutes) break
-      
-      const slotStartHours = Math.floor(currentMinutes / 60)
-      const slotStartMins = currentMinutes % 60
-      const slotEndHours = Math.floor(slotEndMinutes / 60)
-      const slotEndMinsValue = slotEndMinutes % 60
-      
-      const startTimeStr = `${slotStartHours.toString().padStart(2, '0')}:${slotStartMins.toString().padStart(2, '0')}`
-      const endTimeStr = `${slotEndHours.toString().padStart(2, '0')}:${slotEndMinsValue.toString().padStart(2, '0')}`
-      
-      slots.push({
-        startTime: startTimeStr,
-        endTime: endTimeStr,
-        displayTime: `${formatTime(startTimeStr)} - ${formatTime(endTimeStr)}`
-      })
-    }
-    
-    return slots
   }
 
   const getDayName = (dayOfWeek) => {
@@ -187,6 +222,13 @@ const DispensaryDetailsPage = () => {
           <FaArrowLeft className="mr-2" />
           Back
         </button>
+
+        {/* Success Message */}
+        {bookingSuccess && (
+          <div className="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+            <strong>Success!</strong> Your appointment has been booked successfully.
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Hero Image */}
@@ -377,14 +419,11 @@ const DispensaryDetailsPage = () => {
                       <div className="flex gap-4">
                         {isDoctorAvailableOnSelectedDate(doctor.day, selectedDate) ? (
                           <button
-                            onClick={() => {
-                              const generatedSlots = generateTimeSlots(doctor.startTime, doctor.endTime, doctor.perPatientMinutes)
-                              setSlots(generatedSlots)
-                              setSelectedSchedule(doctor.scheduleId)
-                            }}
+                            onClick={() => fetchSlots(doctor.scheduleId)}
                             className="btn-primary"
+                            disabled={loadingSlots}
                           >
-                            View Available Slots
+                            {loadingSlots && selectedSchedule === doctor.scheduleId ? 'Loading...' : 'View Available Slots'}
                           </button>
                         ) : (
                           <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-md">
@@ -403,13 +442,20 @@ const DispensaryDetailsPage = () => {
                               {slots.map((slot, index) => (
                                 <button
                                   key={index}
-                                  className="p-3 text-sm border border-primary-300 rounded-md hover:bg-primary-100 transition-colors text-center"
-                                  onClick={() => {
-                                    // TODO: Handle slot booking
-                                    console.log('Selected slot:', slot)
-                                  }}
+                                  className={`p-3 text-sm border rounded-md transition-colors text-center ${
+                                    slot.available 
+                                      ? 'border-primary-300 hover:bg-primary-100 cursor-pointer' 
+                                      : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                                  } ${
+                                    bookingLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
+                                  disabled={!slot.available || bookingLoading}
+                                  onClick={() => handleSlotClick(slot, doctor.scheduleId)}
                                 >
-                                  {slot.displayTime}
+                                  <span className="block">{slot.displayTime}</span>
+                                  {!slot.available && (
+                                    <span className="text-xs text-gray-400 block mt-1">Not Available</span>
+                                  )}
                                 </button>
                               ))}
                             </div>
@@ -425,6 +471,41 @@ const DispensaryDetailsPage = () => {
             )}
           </div>
         </div>
+
+        {/* Confirmation Dialog */}
+        {showConfirmDialog && selectedSlot && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Confirm Appointment Booking</h3>
+              <div className="mb-4">
+                <p className="text-gray-600 mb-2">
+                  Are you sure you want to book this appointment?
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p><strong>Date:</strong> {new Date(selectedDate).toLocaleDateString()}</p>
+                  <p><strong>Time:</strong> {selectedSlot.displayTime}</p>
+                  <p><strong>Doctor:</strong> {dispensary?.approvedDoctors?.find(d => d.scheduleId === selectedScheduleForBooking)?.doctorName}</p>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={cancelBooking}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  disabled={bookingLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBooking}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={bookingLoading}
+                >
+                  {bookingLoading ? 'Booking...' : 'Confirm Booking'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

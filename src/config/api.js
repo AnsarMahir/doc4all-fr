@@ -34,7 +34,8 @@ export const API_CONFIG = {
       DASHBOARD: '/patient/dashboard',
       PRESCRIPTIONS: '/patient/prescriptions',
       LOCATION: '/patient/location',
-      UPDATE_LOCATION: '/patient/update-location'
+      UPDATE_LOCATION: '/patient/update-location',
+      BOOKINGS: '/patient/bookings'
     },
     // Dispensary endpoints
     DISPENSARY: {
