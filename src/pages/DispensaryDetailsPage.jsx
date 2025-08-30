@@ -46,6 +46,8 @@ const DispensaryDetailsPage = () => {
 
   useEffect(() => {
     const fetchDispensaryDetails = async () => {
+      if (!id) return
+      
       try {
         setLoading(true)
         // Fetch initial data without date parameter to avoid re-renders
@@ -59,10 +61,8 @@ const DispensaryDetailsPage = () => {
       }
     }
 
-    if (id) {
-      fetchDispensaryDetails()
-    }
-  }, [id]) // Only depend on id, not selectedDate
+    fetchDispensaryDetails()
+  }, [id, get]) // Now safe to include get since it's memoized with useCallback
 
   const fetchSlots = async (scheduleId) => {
     try {

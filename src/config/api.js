@@ -26,7 +26,8 @@ export const API_CONFIG = {
       PROFILE_STATUS: '/doctor/profile-status',
       INVITATIONS: '/doctor/invitations',
       RESPOND_INVITATION: '/doctor/invitations/respond',
-      SCHEDULES: '/doctor/schedules'
+      SCHEDULES: '/doctor/schedules',
+      UPDATE_SCHEDULE_STATUS: (id) => `/doctor/remove-schedule/${id}`
     },
     // Patient endpoints
     PATIENT: {

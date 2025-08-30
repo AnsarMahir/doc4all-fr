@@ -55,6 +55,18 @@ export const useDoctorInvitationsReceived = () => {
     }
   }
 
+  // Update schedule status to pending
+  const updateScheduleStatus = async (scheduleId) => {
+    try {
+      const responseData = await post(buildUrl(API_CONFIG.ENDPOINTS.DOCTOR.UPDATE_SCHEDULE_STATUS(scheduleId)))
+      await fetchSchedules() // Refresh schedules list
+      return responseData
+    } catch (err) {
+      console.error('Failed to update schedule status:', err)
+      throw err
+    }
+  }
+
   // Load data on mount
   useEffect(() => {
     fetchInvitations()
@@ -69,6 +81,7 @@ export const useDoctorInvitationsReceived = () => {
     loading,
     error,
     respondToInvitation,
+    updateScheduleStatus,
     refreshInvitations: fetchInvitations,
     refreshSchedules: fetchSchedules
   }

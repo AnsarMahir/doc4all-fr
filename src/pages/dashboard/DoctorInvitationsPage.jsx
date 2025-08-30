@@ -19,16 +19,26 @@ const DoctorInvitationsPage = () => {
     schedules,
     loadingInvitations,
     loadingSchedules,
-    respondToInvitation
+    respondToInvitation,
+    updateScheduleStatus
   } = useDoctorInvitationsReceived()
   
   const { showSuccess, showError } = useNotification()
   const [respondingId, setRespondingId] = useState(null)
+  const [updatingScheduleId, setUpdatingScheduleId] = useState(null)
   const [activeTab, setActiveTab] = useState('invitations')
 
   // Filter invitations by status
   const pendingInvitations = invitations.filter(inv => inv.status === 'PENDING')
   const rejectedInvitations = invitations.filter(inv => inv.status === 'REJECTED')
+
+  // Filter schedules by status
+  const acceptedSchedules = schedules.filter(schedule => 
+    schedule.status?.toString().toUpperCase().trim() === 'ACCEPTED'
+  )
+  const pendingSchedules = schedules.filter(schedule => 
+    schedule.status?.toString().toUpperCase().trim() === 'PENDING'
+  )
 
   const handleResponse = async (invitationId, response) => {
     setRespondingId(invitationId)
@@ -39,6 +49,19 @@ const DoctorInvitationsPage = () => {
       showError(`Failed to ${response.toLowerCase()} invitation`)
     } finally {
       setRespondingId(null)
+    }
+  }
+
+  const handleToggleScheduleStatus = async (scheduleId, currentStatus) => {
+    setUpdatingScheduleId(scheduleId)
+    try {
+      await updateScheduleStatus(scheduleId)
+      const newStatus = currentStatus === 'PENDING' ? 'activated' : 'marked as pending'
+      showSuccess(`Schedule ${newStatus} successfully!`)
+    } catch (error) {
+      showError('Failed to update schedule status')
+    } finally {
+      setUpdatingScheduleId(null)
     }
   }
 
@@ -99,7 +122,7 @@ const DoctorInvitationsPage = () => {
             }`}
           >
             <FaCalendarCheck className="inline-block mr-2" />
-            My Schedules ({schedules.length})
+            My Schedules ({acceptedSchedules.length} Active, {pendingSchedules.length} Pending)
           </button>
           <button
             onClick={() => setActiveTab('rejected')}
@@ -200,7 +223,7 @@ const DoctorInvitationsPage = () => {
 
       {/* Schedules Tab */}
       {activeTab === 'schedules' && (
-        <div>
+        <div className="space-y-8">
           {loadingSchedules ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -209,51 +232,149 @@ const DoctorInvitationsPage = () => {
             <div className="text-center py-12">
               <FaCalendarCheck className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No schedules</h3>
-              <p className="mt-1 text-sm text-gray-500">You don't have any active schedules yet.</p>
+              <p className="mt-1 text-sm text-gray-500">You don't have any schedules yet.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {schedules.map((schedule) => (
-                <div key={schedule.id} className="bg-white rounded-lg shadow border border-gray-200 p-6">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Dispensary #{schedule.dispensaryId}
-                    </h3>
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      Active Schedule
-                    </span>
-                  </div>
+            <>
+              {/* Active Schedules */}
+              {acceptedSchedules.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                    <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                    Active Schedules ({acceptedSchedules.length})
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {acceptedSchedules.map((schedule) => (
+                      <div key={schedule.id} className="bg-white rounded-lg shadow border border-gray-200 p-6">
+                        <div className="mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Dispensary #{schedule.dispensaryId}
+                          </h3>
+                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            {schedule.status}
+                          </span>
+                        </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <FaCalendarAlt className="mr-2 text-blue-500" />
-                      <span className="font-medium">Day:</span>
-                      <span className="ml-1">{formatDay(schedule.day)}</span>
-                    </div>
-                    
-                    <div className="flex items-center text-sm text-gray-600">
-                      <FaClock className="mr-2 text-green-500" />
-                      <span className="font-medium">Time:</span>
-                      <span className="ml-1">
-                        {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center text-sm text-gray-600">
-                      <FaClock className="mr-2 text-orange-500" />
-                      <span className="font-medium">Per Patient:</span>
-                      <span className="ml-1">{schedule.perPatientMinutes} minutes</span>
-                    </div>
-                    
-                    <div className="flex items-center text-sm text-gray-600">
-                      <FaDollarSign className="mr-2 text-purple-500" />
-                      <span className="font-medium">Agreed Rate:</span>
-                      <span className="ml-1">${schedule.agreedRate}</span>
-                    </div>
+                        <div className="space-y-3 mb-4">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <FaCalendarAlt className="mr-2 text-blue-500" />
+                            <span className="font-medium">Day:</span>
+                            <span className="ml-1">{formatDay(schedule.day)}</span>
+                          </div>
+                          
+                          <div className="flex items-center text-sm text-gray-600">
+                            <FaClock className="mr-2 text-green-500" />
+                            <span className="font-medium">Time:</span>
+                            <span className="ml-1">
+                              {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center text-sm text-gray-600">
+                            <FaClock className="mr-2 text-orange-500" />
+                            <span className="font-medium">Per Patient:</span>
+                            <span className="ml-1">{schedule.perPatientMinutes} minutes</span>
+                          </div>
+                          
+                          <div className="flex items-center text-sm text-gray-600">
+                            <FaDollarSign className="mr-2 text-purple-500" />
+                            <span className="font-medium">Agreed Rate:</span>
+                            <span className="ml-1">${schedule.agreedRate}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleToggleScheduleStatus(schedule.id, schedule.status)}
+                          disabled={updatingScheduleId === schedule.id}
+                          className="w-full bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                          {updatingScheduleId === schedule.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          ) : (
+                            <FaClock className="mr-2" />
+                          )}
+                          Mark as Pending
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Pending Schedules */}
+              {pendingSchedules.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                    <span className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
+                    Pending Schedules ({pendingSchedules.length})
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pendingSchedules.map((schedule) => (
+                      <div key={schedule.id} className="bg-white rounded-lg shadow border border-gray-200 p-6">
+                        <div className="mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Dispensary #{schedule.dispensaryId}
+                          </h3>
+                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                            {schedule.status}
+                          </span>
+                        </div>
+
+                        <div className="space-y-3 mb-4">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <FaCalendarAlt className="mr-2 text-blue-500" />
+                            <span className="font-medium">Day:</span>
+                            <span className="ml-1">{formatDay(schedule.day)}</span>
+                          </div>
+                          
+                          <div className="flex items-center text-sm text-gray-600">
+                            <FaClock className="mr-2 text-green-500" />
+                            <span className="font-medium">Time:</span>
+                            <span className="ml-1">
+                              {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center text-sm text-gray-600">
+                            <FaClock className="mr-2 text-orange-500" />
+                            <span className="font-medium">Per Patient:</span>
+                            <span className="ml-1">{schedule.perPatientMinutes} minutes</span>
+                          </div>
+                          
+                          <div className="flex items-center text-sm text-gray-600">
+                            <FaDollarSign className="mr-2 text-purple-500" />
+                            <span className="font-medium">Agreed Rate:</span>
+                            <span className="ml-1">${schedule.agreedRate}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleToggleScheduleStatus(schedule.id, schedule.status)}
+                          disabled={updatingScheduleId === schedule.id}
+                          className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                          {updatingScheduleId === schedule.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          ) : (
+                            <FaCheck className="mr-2" />
+                          )}
+                          Activate Schedule
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No schedules message */}
+              {acceptedSchedules.length === 0 && pendingSchedules.length === 0 && (
+                <div className="text-center py-12">
+                  <FaCalendarCheck className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No schedules</h3>
+                  <p className="mt-1 text-sm text-gray-500">You don't have any schedules yet.</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

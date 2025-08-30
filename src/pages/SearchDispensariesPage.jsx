@@ -51,7 +51,7 @@ const SearchDispensariesPage = () => {
     }
 
     fetchDispensaries()
-  }, []) // Remove get from dependency array
+  }, [get]) // Now safe to include get since it's memoized with useCallback
 
   const handleSearch = (e) => {
     e.preventDefault()

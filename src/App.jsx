@@ -63,18 +63,18 @@ function App() {
                   </>
                 } />
                 <Route path="/search-dispensaries" element={
-                  <>
+                  <ProtectedRoute>
                     <Header openAuthModal={openAuthModal} />
                     <SearchDispensariesPage />
                     <Footer />
-                  </>
+                  </ProtectedRoute>
                 } />
                 <Route path="/dispensary/:id" element={
-                  <>
+                  <ProtectedRoute>
                     <Header openAuthModal={openAuthModal} />
                     <DispensaryDetailsPage />
                     <Footer />
-                  </>
+                  </ProtectedRoute>
                 } />
                 <Route path="/unauthorized" element={
                   <>

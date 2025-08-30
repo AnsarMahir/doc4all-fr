@@ -1,12 +1,12 @@
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 
 export const useApi = () => {
   const { apiCall } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const request = async (url, options = {}) => {
+  const request = useCallback(async (url, options = {}) => {
     setLoading(true)
     setError(null)
     
@@ -26,15 +26,15 @@ export const useApi = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [apiCall])
 
-  const get = (url) => request(url)
-  const post = (url, data) => request(url, { method: 'POST', body: JSON.stringify(data) })
-  const put = (url, data) => request(url, { method: 'PUT', body: JSON.stringify(data) })
-  const patch = (url, data) => request(url, { method: 'PATCH', body: JSON.stringify(data) })
-  const del = (url) => request(url, { method: 'DELETE' })
+  const get = useCallback((url) => request(url), [request])
+  const post = useCallback((url, data) => request(url, { method: 'POST', body: JSON.stringify(data) }), [request])
+  const put = useCallback((url, data) => request(url, { method: 'PUT', body: JSON.stringify(data) }), [request])
+  const patch = useCallback((url, data) => request(url, { method: 'PATCH', body: JSON.stringify(data) }), [request])
+  const del = useCallback((url) => request(url, { method: 'DELETE' }), [request])
 
-  const clearError = () => setError(null)
+  const clearError = useCallback(() => setError(null), [])
 
   return {
     request,
