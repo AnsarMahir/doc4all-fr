@@ -37,6 +37,10 @@ export const API_CONFIG = {
       UPDATE_LOCATION: '/patient/update-location',
       BOOKINGS: '/patient/bookings'
     },
+    // Payment endpoints
+    PAYMENTS: {
+      TOKEN: '/payments/token'
+    },
     // Dispensary endpoints
     DISPENSARY: {
       DASHBOARD: '/dispensary/dashboard',

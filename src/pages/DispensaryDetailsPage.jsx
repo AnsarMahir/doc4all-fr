@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaLeaf, FaYinYang, FaHospital, FaMosque, FaArrowLeft, FaStar, FaClock, FaCalendarAlt, FaUserMd, FaGraduationCap, FaStethoscope } from 'react-icons/fa'
 import { API_CONFIG, buildUrl } from '../config/api'
 import { useApi } from '../hooks/useApi'
+import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
+import BookingWithPayment from '../components/BookingWithPayment'
 
 // Mock images for dispensaries (since we don't provide images)
 const getDispensaryImage = (type) => {
@@ -30,6 +32,7 @@ const DispensaryDetailsPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { get, post } = useApi()
+  const { user } = useAuth()
   const notifications = useNotifications()
   
   const [dispensary, setDispensary] = useState(null)
@@ -42,6 +45,7 @@ const DispensaryDetailsPage = () => {
   const [bookingLoading, setBookingLoading] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedScheduleForBooking, setSelectedScheduleForBooking] = useState(null)
 
@@ -93,38 +97,6 @@ const DispensaryDetailsPage = () => {
     }
   }
 
-  const bookAppointment = async (scheduleId, slotStartTime) => {
-    try {
-      setBookingLoading(true)
-      
-      const bookingData = {
-        scheduleId: scheduleId,
-        appointmentDate: selectedDate,
-        slotStartTime: slotStartTime
-      }
-
-      await post(buildUrl(API_CONFIG.ENDPOINTS.PATIENT.BOOKINGS), bookingData)
-      
-      setBookingSuccess(true)
-      notifications.success('Appointment booked successfully!')
-      
-      // Reset success message after 5 seconds
-      setTimeout(() => setBookingSuccess(false), 5000)
-      
-      // Refresh the slots to show updated availability
-      await fetchSlots(scheduleId)
-      
-    } catch (err) {
-      console.error('Error booking appointment:', err)
-      notifications.error(err.message || 'Failed to book appointment. Please try again.')
-    } finally {
-      setBookingLoading(false)
-      setShowConfirmDialog(false)
-      setSelectedSlot(null)
-      setSelectedScheduleForBooking(null)
-    }
-  }
-
   const handleSlotClick = (slot, scheduleId) => {
     if (!slot.available) return
     
@@ -134,13 +106,41 @@ const DispensaryDetailsPage = () => {
   }
 
   const confirmBooking = () => {
-    if (selectedSlot && selectedScheduleForBooking) {
-      bookAppointment(selectedScheduleForBooking, selectedSlot.start)
-    }
+    // Close confirmation dialog and open payment dialog
+    setShowConfirmDialog(false)
+    setShowPaymentDialog(true)
   }
 
   const cancelBooking = () => {
     setShowConfirmDialog(false)
+    setShowPaymentDialog(false)
+    setSelectedSlot(null)
+    setSelectedScheduleForBooking(null)
+  }
+
+  const handleBookingSuccess = async (response) => {
+    setShowPaymentDialog(false)
+    setBookingSuccess(true)
+    notifications.success('Appointment booked and payment processed successfully!')
+    
+    // Reset success message after 5 seconds
+    setTimeout(() => setBookingSuccess(false), 5000)
+    
+    // Refresh the slots to show updated availability
+    if (selectedScheduleForBooking) {
+      await fetchSlots(selectedScheduleForBooking)
+    }
+    
+    // Reset selected items
+    setSelectedSlot(null)
+    setSelectedScheduleForBooking(null)
+  }
+
+  const handleBookingError = (error) => {
+    setShowPaymentDialog(false)
+    notifications.error(error.message || 'Failed to book appointment. Please try again.')
+    
+    // Reset selected items
     setSelectedSlot(null)
     setSelectedScheduleForBooking(null)
   }
@@ -500,9 +500,34 @@ const DispensaryDetailsPage = () => {
                   className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={bookingLoading}
                 >
-                  {bookingLoading ? 'Booking...' : 'Confirm Booking'}
+                  {bookingLoading ? 'Booking...' : 'Proceed to Payment'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Dialog */}
+        {showPaymentDialog && selectedSlot && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Complete Your Booking</h3>
+                <button
+                  onClick={cancelBooking}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <BookingWithPayment
+                scheduleId={selectedScheduleForBooking}
+                appointmentDate={selectedDate}
+                slotStartTime={selectedSlot.start}
+                onSuccess={handleBookingSuccess}
+                onError={handleBookingError}
+              />
             </div>
           </div>
         )}
