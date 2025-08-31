@@ -4,10 +4,10 @@ import { useDispensary } from '../../hooks/useDispensary'
 import { useNotifications } from '../../contexts/NotificationContext'
 
 const DISPENSARY_TYPES = [
-  { value: 'COMMUNITY', label: 'Community Pharmacy' },
-  { value: 'HOSPITAL', label: 'Hospital Pharmacy' },
-  { value: 'CLINIC', label: 'Clinic Pharmacy' },
-  { value: 'SPECIALTY', label: 'Specialty Pharmacy' }
+  { value: 'Western', label: 'Western' },
+  { value: 'Unani', label: 'Unani' },
+  { value: 'Homeopathy', label: 'Homeopathy' },
+  { value: 'Aayurvedic', label: 'Aayurvedic' }
 ]
 
 const DispensaryProfilePage = () => {
@@ -19,7 +19,7 @@ const DispensaryProfilePage = () => {
     longitude: '',
     latitude: '',
     description: '',
-    contactNumber: '',
+    phone: '', // Changed from contactNumber to phone
     website: '',
     type: ''
   })
@@ -51,12 +51,8 @@ const DispensaryProfilePage = () => {
       newErrors.address = 'Address is required'
     }
     
-    if (!profile.contactNumber.trim()) {
-      newErrors.contactNumber = 'Contact number is required'
-    }
-    
-    if (!profile.type) {
-      newErrors.type = 'Dispensary type is required'
+    if (!profile.phone.trim()) {
+      newErrors.phone = 'Contact number is required'
     }
     
     if (!profile.description.trim()) {
@@ -202,57 +198,37 @@ const DispensaryProfilePage = () => {
 
           {/* Contact Number */}
           <div>
-            <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
               Contact Number *
             </label>
             {isEditing ? (
               <input
                 type="tel"
-                id="contactNumber"
-                name="contactNumber"
+                id="phone"
+                name="phone"
                 className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                  errors.contactNumber ? 'border-red-300' : 'border-gray-300'
+                  errors.phone ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Enter your contact number"
-                value={profile.contactNumber}
+                value={profile.phone}
                 onChange={handleInputChange}
               />
             ) : (
               <p className="mt-1 text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                {profile.contactNumber || 'Not provided'}
+                {profile.phone || 'Not provided'}
               </p>
             )}
-            {errors.contactNumber && <p className="mt-1 text-sm text-red-600">{errors.contactNumber}</p>}
+            {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
           </div>
 
           {/* Dispensary Type */}
           <div>
             <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-              Dispensary Type *
+              Dispensary Type
             </label>
-            {isEditing ? (
-              <select
-                id="type"
-                name="type"
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                  errors.type ? 'border-red-300' : 'border-gray-300'
-                }`}
-                value={profile.type}
-                onChange={handleInputChange}
-              >
-                <option value="">Select dispensary type</option>
-                {DISPENSARY_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className="mt-1 text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                {DISPENSARY_TYPES.find(t => t.value === profile.type)?.label || 'Not provided'}
-              </p>
-            )}
-            {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
+            <p className="mt-1 text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+              {DISPENSARY_TYPES.find(t => t.value === profile.type)?.label || 'Not provided'}
+            </p>
           </div>
 
           {/* Description */}
