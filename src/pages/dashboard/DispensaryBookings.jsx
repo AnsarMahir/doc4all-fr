@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUserMd, FaCalendarAlt, FaClock, FaUser, FaGraduationCap, FaStethoscope, FaChevronDown, FaChevronUp, FaSpinner, FaFilter } from 'react-icons/fa';
+import { FaUserMd, FaCalendarAlt, FaClock, FaUser, FaGraduationCap, FaStethoscope, FaChevronDown, FaChevronUp, FaSpinner, FaFilter, FaCheck } from 'react-icons/fa';
 import { useApi } from '../../hooks/useApi';
 import { useNotification } from '../../hooks/useNotification';
 import { API_CONFIG, buildUrl } from '../../config/api';
@@ -8,12 +8,13 @@ const DispensaryBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [groupedBookings, setGroupedBookings] = useState({});
   const [loading, setLoading] = useState(true);
+  const [completingBookings, setCompletingBookings] = useState(new Set());
   const [expandedDoctors, setExpandedDoctors] = useState(new Set());
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   
-  const { get } = useApi();
-  const { error: showError } = useNotification();
+  const { get, post } = useApi();
+  const { error: showError, success: showSuccess } = useNotification();
 
   useEffect(() => {
     fetchBookings();
@@ -151,6 +152,33 @@ const DispensaryBookings = () => {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const completeAppointment = async (bookingId) => {
+    try {
+      setCompletingBookings(prev => new Set([...prev, bookingId]));
+      
+      await post(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.COMPLETE_BOOKING(bookingId)));
+      
+      showSuccess('Appointment completed successfully!');
+      
+      // Refresh the bookings data
+      await fetchBookings();
+    } catch (err) {
+      console.error('Error completing appointment:', err);
+      showError('Failed to complete appointment. Please try again.');
+    } finally {
+      setCompletingBookings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(bookingId);
+        return newSet;
+      });
+    }
+  };
+
+  const canCompleteBooking = (booking) => {
+    return booking.status?.toLowerCase() === 'confirmed' && 
+           booking.paymentStatus?.toLowerCase() === 'paid';
   };
 
   const getTypeIcon = (type) => {
@@ -354,6 +382,29 @@ const DispensaryBookings = () => {
                                 </div>
                               )}
                             </div>
+                            
+                            {/* Complete Appointment Button */}
+                            {canCompleteBooking(booking) && (
+                              <div className="ml-4 flex-shrink-0">
+                                <button
+                                  onClick={() => completeAppointment(booking.bookingId)}
+                                  disabled={completingBookings.has(booking.bookingId)}
+                                  className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                                >
+                                  {completingBookings.has(booking.bookingId) ? (
+                                    <>
+                                      <FaSpinner className="animate-spin mr-2" />
+                                      Completing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FaCheck className="mr-2" />
+                                      Complete
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

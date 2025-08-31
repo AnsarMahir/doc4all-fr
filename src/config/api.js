@@ -55,7 +55,8 @@ export const API_CONFIG = {
       CHECK_PROFILE_STATUS: '/dispensary/profile-status',
       INVITATIONS: '/dispensary/invitations',
       REVOKE_INVITATION: (id) => `/dispensary/revoke/${id}`,
-      BOOKINGS: '/dispensary/bookings'
+      BOOKINGS: '/dispensary/bookings',
+      COMPLETE_BOOKING: (bookingId) => `/dispensary/${bookingId}/complete`
     },
     // Doctor list endpoint
     DOCTORS: '/doctor'
