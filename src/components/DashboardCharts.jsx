@@ -27,11 +27,18 @@ ChartJS.register(
 )
 
 const DashboardCharts = ({ chartData }) => {
+  console.log('DashboardCharts received chartData:', chartData)
+  
   // Safety check to ensure chartData exists and has the required properties
-  if (!chartData || !chartData.appointmentsByDay || !chartData.appointmentsByDoctor || !chartData.appointmentsByStatus) {
+  if (!chartData || !chartData.appointmentsByDoctor || !chartData.appointmentsByStatus) {
+    console.log('Chart data validation failed:', {
+      hasChartData: !!chartData,
+      hasAppointmentsByDoctor: !!chartData?.appointmentsByDoctor,
+      hasAppointmentsByStatus: !!chartData?.appointmentsByStatus
+    })
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {[1, 2].map((i) => (
           <div key={i} className="bg-white rounded-lg shadow p-6">
             <div className="animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
@@ -98,17 +105,19 @@ const DashboardCharts = ({ chartData }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-      {/* Line Chart - Confirmed Upcoming Appointments */}
-      <div className="bg-white rounded-lg shadow p-6">
-        {chartData.appointmentsByDay?.labels ? (
-          <Line data={chartData.appointmentsByDay} options={lineChartOptions} />
-        ) : (
-          <div className="h-64 flex items-center justify-center text-gray-500">
-            No appointment data available
-          </div>
-        )}
-      </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      {/* Show line chart only if appointmentsByDay exists */}
+      {chartData.appointmentsByDay && (
+        <div className="bg-white rounded-lg shadow p-6">
+          {chartData.appointmentsByDay?.labels ? (
+            <Line data={chartData.appointmentsByDay} options={lineChartOptions} />
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              No appointment data available
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Bar Chart - Confirmed Appointments by Dispensary */}
       <div className="bg-white rounded-lg shadow p-6">

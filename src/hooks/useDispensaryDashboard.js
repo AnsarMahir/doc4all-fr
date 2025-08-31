@@ -21,10 +21,6 @@ export const useDispensaryDashboard = () => {
       bookingsByStatus: {
         labels: [],
         datasets: []
-      },
-      appointmentsByDay: {
-        labels: [],
-        datasets: []
       }
     },
     dispensaryInfo: {
@@ -131,12 +127,15 @@ export const useDispensaryDashboard = () => {
   const generateChartData = (bookings) => {
     const appointmentsByDoctor = getBookingsByDoctor(bookings)
     const appointmentsByStatus = getBookingsByStatus(bookings)
-    const appointmentsByDay = getAppointmentsByDay(bookings)
+
+    console.log('Generated chart data:', {
+      appointmentsByDoctor,
+      appointmentsByStatus
+    })
 
     return {
       appointmentsByDoctor,
-      appointmentsByStatus,
-      appointmentsByDay
+      appointmentsByStatus
     }
   }
 
@@ -213,49 +212,6 @@ export const useDispensaryDashboard = () => {
           'rgba(239, 68, 68, 0.8)',  // CANCELLED - Red
           'rgba(59, 130, 246, 0.8)'  // COMPLETED - Blue
         ]
-      }]
-    }
-  }
-
-  const getAppointmentsByDay = (bookings) => {
-    const dayCount = {}
-    const next7Days = []
-    
-    // Initialize next 7 days
-    for (let i = 0; i < 7; i++) {
-      const date = new Date()
-      date.setDate(date.getDate() + i)
-      const dayKey = date.toISOString().split('T')[0]
-      next7Days.push(dayKey)
-      dayCount[dayKey] = 0
-    }
-
-    // Process flat array of bookings
-    if (Array.isArray(bookings)) {
-      bookings.forEach(booking => {
-        if (booking.status === 'CONFIRMED' || booking.status === 'COMPLETED') {
-          const bookingDay = booking.appointmentDate
-          if (bookingDay && dayCount.hasOwnProperty(bookingDay)) {
-            dayCount[bookingDay]++
-          }
-        }
-      })
-    }
-
-    // Always return valid structure
-    return {
-      labels: next7Days.map(day => {
-        const date = new Date(day)
-        const today = new Date().toDateString()
-        const isToday = date.toDateString() === today
-        return isToday ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-      }),
-      datasets: [{
-        label: 'Confirmed Appointments',
-        data: next7Days.map(day => dayCount[day]),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4
       }]
     }
   }
