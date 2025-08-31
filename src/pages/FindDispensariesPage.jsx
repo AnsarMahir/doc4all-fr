@@ -118,6 +118,7 @@ const FindDispensariesPage = () => {
   const [isLoadingSavedLocation, setIsLoadingSavedLocation] = useState(false)
   const [isSavingLocation, setIsSavingLocation] = useState(false)
   const [showLocationOptions, setShowLocationOptions] = useState(false)
+  const [mapKey, setMapKey] = useState(0) // Add this to force map re-render when needed
   
   const mapRef = useRef(null)
   const { get, post } = useApi()
@@ -457,6 +458,13 @@ const FindDispensariesPage = () => {
     }
   }, [userLocation, searchRadius, disciplineFilter, allDispensaries, filterDispensaries])
 
+  // Force map re-render when search radius changes to prevent circle stacking
+  useEffect(() => {
+    if (userLocation) {
+      setMapKey(prev => prev + 1)
+    }
+  }, [searchRadius])
+
   return (
     <div className="py-8">
       <div className="container mx-auto px-4">
@@ -478,10 +486,20 @@ const FindDispensariesPage = () => {
                     max="10"
                     step="1"
                     value={searchRadius}
-                    onChange={(e) => setSearchRadius(Number(e.target.value))}
+                    onChange={(e) => {
+                      const newRadius = Number(e.target.value)
+                      setSearchRadius(newRadius)
+                      // Force immediate visual update
+                      if (map && userLocation) {
+                        map.panTo(userLocation)
+                      }
+                    }}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
-                  <span className="ml-2 text-gray-700 font-medium">{searchRadius} km</span>
+                  <span className="ml-2 text-gray-700 font-medium min-w-[50px]">{searchRadius} km</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Adjust to find dispensaries within your preferred distance
                 </div>
               </div>
               
@@ -767,7 +785,7 @@ const FindDispensariesPage = () => {
               {isLoaded ? (
                 <div className="rounded-lg overflow-hidden border border-gray-300">
                   <GoogleMap
-                    key={userLocation ? `map-${userLocation.lat}-${userLocation.lng}` : 'map-default'}
+                    key={`map-${mapKey}-${userLocation ? `${userLocation.lat}-${userLocation.lng}` : 'default'}`}
                     mapContainerStyle={containerStyle}
                     center={center}
                     zoom={13}
@@ -799,7 +817,7 @@ const FindDispensariesPage = () => {
                         
                         {/* Search radius circle */}
                         <Circle
-                          key={`circle-${userLocation.lat}-${userLocation.lng}-${searchRadius}`}
+                          key={`search-radius-circle-${searchRadius}`}
                           center={userLocation}
                           radius={searchRadius * 1000} // Convert km to meters
                           options={{
@@ -808,6 +826,7 @@ const FindDispensariesPage = () => {
                             strokeColor: "#4285F4",
                             strokeOpacity: 0.5,
                             strokeWeight: 1,
+                            clickable: false,
                           }}
                         />
                       </>
