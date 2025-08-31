@@ -1,5 +1,5 @@
 // pages/dashboard/DispensaryDashboard.jsx
-import { FaMapMarkerAlt, FaEnvelope, FaUserMd, FaClipboardList } from 'react-icons/fa'
+import { FaMapMarkerAlt, FaEnvelope, FaUserMd, FaClipboardList, FaCalendarCheck } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 
 const DispensaryDashboard = () => {
@@ -24,6 +24,13 @@ const DispensaryDashboard = () => {
       icon: FaUserMd,
       link: '/dashboard/dispensary/doctors',
       color: 'bg-purple-500'
+    },
+    {
+      title: 'Doctor Bookings',
+      description: 'View all doctor appointments',
+      icon: FaCalendarCheck,
+      link: '/dashboard/dispensary/bookings',
+      color: 'bg-indigo-500'
     },
     {
       title: 'Prescriptions',
@@ -61,7 +68,7 @@ const DispensaryDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
         {quickActions.map((action) => {
           const Icon = action.icon
           return (
