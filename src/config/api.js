@@ -35,7 +35,8 @@ export const API_CONFIG = {
       PRESCRIPTIONS: '/patient/prescriptions',
       LOCATION: '/patient/location',
       UPDATE_LOCATION: '/patient/update-location',
-      BOOKINGS: '/patient/bookings'
+      BOOKINGS: '/patient/bookings',
+      CANCEL_BOOKING: (bookingId) => `/patient/${bookingId}/cancel`
     },
     // Payment endpoints
     PAYMENTS: {

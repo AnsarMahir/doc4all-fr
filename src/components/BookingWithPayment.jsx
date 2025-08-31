@@ -36,22 +36,30 @@ export default function BookingWithPayment({ scheduleId, appointmentDate, slotSt
         
         setClientToken(token);
 
-        // initialize Drop-in
-        dropin.create({
-          authorization: token,
-          container: containerRef.current,
-          // optional extras:
-          card: { cardholderName: true },
-          // paypal: { flow: 'vault' }
-        }, (createErr, instance) => {
-          if (createErr) {
-            console.error("Dropin create error", createErr);
-            setError("Payment UI failed to initialize");
-            showError("Payment UI failed to initialize");
-            return;
-          }
-          dropinInstance.current = instance;
-        });
+        // Wait for the container to be available and ensure it's empty
+        if (containerRef.current) {
+          // Clear any existing content
+          containerRef.current.innerHTML = '';
+          
+          // initialize Drop-in
+          dropin.create({
+            authorization: token,
+            container: containerRef.current,
+            // optional extras:
+            card: { cardholderName: true },
+            // paypal: { flow: 'vault' }
+          }, (createErr, instance) => {
+            if (createErr) {
+              console.error("Dropin create error", createErr);
+              setError("Payment UI failed to initialize");
+              showError("Payment UI failed to initialize");
+              return;
+            }
+            dropinInstance.current = instance;
+          });
+        } else {
+          throw new Error("Container element not found");
+        }
       } catch (err) {
         console.error(err);
         const errorMessage = err.message || "Could not load payment token";
@@ -60,10 +68,14 @@ export default function BookingWithPayment({ scheduleId, appointmentDate, slotSt
       }
     }
 
-    fetchToken();
+    // Add a small delay to ensure the container is rendered
+    const timer = setTimeout(() => {
+      fetchToken();
+    }, 100);
 
     // cleanup
     return () => {
+      clearTimeout(timer);
       if (dropinInstance.current) {
         dropinInstance.current.teardown().catch(() => {});
         dropinInstance.current = null;

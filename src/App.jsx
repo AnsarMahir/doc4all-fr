@@ -20,6 +20,7 @@ import ProfilePage from './pages/dashboard/ProfilePage'
 import DispensaryProfilePage from './pages/dashboard/DispensaryProfilePage'
 import InviteDoctorsPage from './pages/dashboard/InviteDoctorsPage'
 import DoctorInvitationsPage from './pages/dashboard/DoctorInvitationsPage'
+import PatientAppointments from './pages/dashboard/PatientAppointments'
 
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -113,7 +114,7 @@ function App() {
                               <Route path="/search-dispensaries" element={<SearchDispensariesPage />} />
                               <Route path="/browse-dispensaries" element={<BrowseDispensariesPage />} />
                               <Route path="/my-prescriptions" element={<div>My Prescriptions (Coming Soon)</div>} />
-                              <Route path="/appointments" element={<div>Appointments (Coming Soon)</div>} />
+                              <Route path="/appointments" element={<PatientAppointments />} />
                             </Routes>
                           </ProtectedRoute>
                         } />
