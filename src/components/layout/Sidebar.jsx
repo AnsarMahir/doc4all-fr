@@ -55,8 +55,7 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
         ...commonItems,
         { path: '/dashboard/profile', label: 'Profile', icon: FaUser },
         { path: '/dashboard/doctor/invitations', label: 'Invitations', icon: FaEnvelope },
-        { path: '/dashboard/doctor/dispensaries', label: 'My Dispensaries', icon: FaHospital },
-        { path: '/dashboard/doctor/patients', label: 'My Patients', icon: FaUsers },
+        { path: '/dashboard/doctor/bookings', label: 'Practice Overview', icon: FaChartBar },
         { path: '/dashboard/doctor/prescriptions', label: 'Prescriptions', icon: FaClipboardList }
       ]
     }

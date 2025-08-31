@@ -22,6 +22,8 @@ import InviteDoctorsPage from './pages/dashboard/InviteDoctorsPage'
 import DoctorInvitationsPage from './pages/dashboard/DoctorInvitationsPage'
 import PatientAppointments from './pages/dashboard/PatientAppointments'
 import DispensaryBookings from './pages/dashboard/DispensaryBookings'
+import DoctorBookings from './pages/dashboard/DoctorBookings'
+import DispensaryLocationPage from './pages/DispensaryLocationPage'
 
 function App() {
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -125,7 +127,7 @@ function App() {
                           <ProtectedRoute requiredRole="DISPENSARY">
                             <Routes>
                               <Route path="/profile" element={<DispensaryProfilePage />} />
-                              <Route path="/location" element={<div>Update Location (Coming Soon)</div>} />
+                              <Route path="/location" element={<DispensaryLocationPage />} />
                               <Route path="/invite-doctors" element={<InviteDoctorsPage />} />
                               <Route path="/doctors" element={<div>My Doctors (Coming Soon)</div>} />
                               <Route path="/bookings" element={<DispensaryBookings />} />
@@ -140,6 +142,7 @@ function App() {
                           <ProtectedRoute requiredRole="DOCTOR">
                             <Routes>
                               <Route path="/invitations" element={<DoctorInvitationsPage />} />
+                              <Route path="/bookings" element={<DoctorBookings />} />
                               <Route path="/dispensaries" element={<div>My Dispensaries (Coming Soon)</div>} />
                               <Route path="/patients" element={<div>My Patients (Coming Soon)</div>} />
                               <Route path="/prescriptions" element={<div>Prescriptions (Coming Soon)</div>} />

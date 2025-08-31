@@ -1,5 +1,5 @@
 // pages/dashboard/DoctorDashboard.jsx
-import { FaEnvelope, FaHospital, FaUsers, FaClipboardList } from 'react-icons/fa'
+import { FaEnvelope, FaStethoscope, FaClipboardList, FaChartLine } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { useDoctorProfileCompletion } from '../../hooks/useDoctorProfileCompletion'
 import DoctorProfileCompletion from '../../components/DoctorProfileCompletion'
@@ -41,17 +41,17 @@ const DoctorDashboard = () => {
       badge: '3' // New invitations
     },
     {
-      title: 'My Dispensaries',
-      description: 'Manage associated dispensaries',
-      icon: FaHospital,
-      link: '/dashboard/doctor/dispensaries',
+      title: 'Practice Overview',
+      description: 'View dispensaries & patient appointments',
+      icon: FaStethoscope,
+      link: '/dashboard/doctor/bookings',
       color: 'bg-green-500'
     },
     {
-      title: 'My Patients',
-      description: 'View and manage patients',
-      icon: FaUsers,
-      link: '/dashboard/doctor/patients',
+      title: 'Analytics',
+      description: 'Practice insights and statistics',
+      icon: FaChartLine,
+      link: '/dashboard/doctor/analytics',
       color: 'bg-purple-500'
     },
     {

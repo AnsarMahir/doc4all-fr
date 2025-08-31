@@ -11,7 +11,7 @@ import {
   FaCalendarCheck
 } from 'react-icons/fa'
 import { useDoctorInvitationsReceived } from '../../hooks/useDoctorInvitationsReceived'
-import { useNotification } from '../../hooks/useNotification'
+import { useNotifications } from '../../contexts/NotificationContext'
 
 const DoctorInvitationsPage = () => {
   const {
@@ -23,10 +23,44 @@ const DoctorInvitationsPage = () => {
     updateScheduleStatus
   } = useDoctorInvitationsReceived()
   
-  const { showSuccess, showError } = useNotification()
+  const { success, error } = useNotifications()
   const [respondingId, setRespondingId] = useState(null)
   const [updatingScheduleId, setUpdatingScheduleId] = useState(null)
   const [activeTab, setActiveTab] = useState('invitations')
+
+  // Utility function to extract error message from API response
+  const getErrorMessage = (error) => {
+    try {
+      // If error message is already a string, check if it's JSON
+      if (typeof error === 'string') {
+        // Try to parse if it looks like JSON
+        if (error.startsWith('{') && error.endsWith('}')) {
+          try {
+            const parsed = JSON.parse(error)
+            return parsed.message || parsed.error || error
+          } catch (parseError) {
+            return error
+          }
+        }
+        return error
+      }
+      
+      // If error has a message property, return it
+      if (error?.message) {
+        return error.message
+      }
+      
+      // If error is an object, try to extract message
+      if (typeof error === 'object' && error !== null) {
+        return error.message || error.error || JSON.stringify(error)
+      }
+      
+      return error?.toString() || 'An unexpected error occurred'
+    } catch (parseError) {
+      // If anything fails, return the original error or a default message
+      return error?.toString() || 'An unexpected error occurred'
+    }
+  }
 
   // Filter invitations by status
   const pendingInvitations = invitations.filter(inv => inv.status === 'PENDING')
@@ -44,9 +78,10 @@ const DoctorInvitationsPage = () => {
     setRespondingId(invitationId)
     try {
       await respondToInvitation(invitationId, response)
-      showSuccess(`Invitation ${response.toLowerCase()}ed successfully!`)
-    } catch (error) {
-      showError(`Failed to ${response.toLowerCase()} invitation`)
+      success(`Invitation ${response.toLowerCase()}ed successfully!`)
+    } catch (apiError) {
+      const errorMessage = getErrorMessage(apiError)
+      error(`Failed to ${response.toLowerCase()} invitation: ${errorMessage}`)
     } finally {
       setRespondingId(null)
     }
@@ -57,9 +92,10 @@ const DoctorInvitationsPage = () => {
     try {
       await updateScheduleStatus(scheduleId)
       const newStatus = currentStatus === 'PENDING' ? 'activated' : 'marked as pending'
-      showSuccess(`Schedule ${newStatus} successfully!`)
-    } catch (error) {
-      showError('Failed to update schedule status')
+      success(`Schedule ${newStatus} successfully!`)
+    } catch (apiError) {
+      const errorMessage = getErrorMessage(apiError)
+      error(`Failed to update schedule status: ${errorMessage}`)
     } finally {
       setUpdatingScheduleId(null)
     }
