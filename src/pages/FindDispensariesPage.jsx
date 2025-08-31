@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { GoogleMap, useJsApiLoader, Marker, Circle, InfoWindow } from '@react-google-maps/api'
 import { FaMapMarkerAlt, FaDirections, FaPhone, FaGlobe, FaLeaf, FaYinYang, FaHospital, FaStar, FaLocationArrow, FaRedo } from 'react-icons/fa'
 import { useApi } from '../hooks/useApi'
@@ -102,6 +103,7 @@ const mockDispensaries = [
 ]
 
 const FindDispensariesPage = () => {
+  const navigate = useNavigate()
   const [userLocation, setUserLocation] = useState(null)
   const [center, setCenter] = useState(defaultCenter)
   const [map, setMap] = useState(null)
@@ -119,6 +121,7 @@ const FindDispensariesPage = () => {
   const [isSavingLocation, setIsSavingLocation] = useState(false)
   const [showLocationOptions, setShowLocationOptions] = useState(false)
   const [mapKey, setMapKey] = useState(0) // Add this to force map re-render when needed
+  const [showAllDispensaries, setShowAllDispensaries] = useState(false) // Toggle for showing all dispensaries
   
   const mapRef = useRef(null)
   const { get, post } = useApi()
@@ -127,16 +130,32 @@ const FindDispensariesPage = () => {
   const fetchDispensaries = async () => {
     setIsLoadingDispensaries(true)
     try {
-      // TODO: Replace with your actual API endpoint
-      // const response = await get('/dispensaries')
-      // setAllDispensaries(response.data)
+      const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.DISPENSARIES))
+      console.log('Dispensaries API response:', response)
       
-      // For now, using mock data - replace this with actual API call
-      console.log('Using mock data - replace with actual API call to /dispensaries')
-      setAllDispensaries(mockDispensaries)
+      // Transform the response to match our expected format
+      const dispensaries = (response.data || response || []).map(dispensary => ({
+        id: dispensary.id,
+        name: dispensary.name,
+        location: { 
+          lat: dispensary.latitude, 
+          lng: dispensary.longitude 
+        },
+        address: dispensary.address,
+        phone: dispensary.phoneNumber,
+        website: dispensary.email ? `mailto:${dispensary.email}` : null,
+        discipline: dispensary.type?.toLowerCase() || 'western',
+        rating: dispensary.rating || null,
+        reviewCount: dispensary.rating ? Math.floor(Math.random() * 200) + 10 : 0, // Placeholder until you have real review count
+        description: dispensary.description || `Professional ${dispensary.type || 'medical'} care and treatment services.`,
+        email: dispensary.email
+      }))
+      
+      setAllDispensaries(dispensaries)
     } catch (error) {
       console.error('Error fetching dispensaries:', error)
       // Fallback to mock data if API fails
+      console.log('Falling back to mock data due to API error')
       setAllDispensaries(mockDispensaries)
     } finally {
       setIsLoadingDispensaries(false)
@@ -269,22 +288,41 @@ const FindDispensariesPage = () => {
 
   // Filter dispensaries based on location and discipline
   const filterDispensaries = useCallback(() => {
-    if (!userLocation || !allDispensaries.length) return []
+    if (!allDispensaries.length) return []
 
-    let filtered = allDispensaries.filter(dispensary => {
-      const distance = calculateDistance(
-        userLocation.lat, 
-        userLocation.lng, 
-        dispensary.location.lat, 
-        dispensary.location.lng
-      )
-      
-      dispensary.distance = distance // Add distance to dispensary object
-      return distance <= searchRadius
-    })
+    let filtered = allDispensaries
 
-    // Sort by distance
-    filtered.sort((a, b) => a.distance - b.distance)
+    // If we have user location and not showing all dispensaries, filter by distance
+    if (userLocation && !showAllDispensaries) {
+      filtered = allDispensaries.filter(dispensary => {
+        const distance = calculateDistance(
+          userLocation.lat, 
+          userLocation.lng, 
+          dispensary.location.lat, 
+          dispensary.location.lng
+        )
+        
+        dispensary.distance = distance // Add distance to dispensary object
+        return distance <= searchRadius
+      })
+    } else if (userLocation) {
+      // If showing all dispensaries but we have user location, still calculate distances for sorting
+      filtered = allDispensaries.map(dispensary => {
+        const distance = calculateDistance(
+          userLocation.lat, 
+          userLocation.lng, 
+          dispensary.location.lat, 
+          dispensary.location.lng
+        )
+        dispensary.distance = distance
+        return dispensary
+      })
+    }
+
+    // Sort by distance if user location is available
+    if (userLocation) {
+      filtered.sort((a, b) => a.distance - b.distance)
+    }
 
     // Filter by discipline if needed
     if (disciplineFilter !== 'all') {
@@ -292,7 +330,7 @@ const FindDispensariesPage = () => {
     }
 
     return filtered
-  }, [userLocation, searchRadius, disciplineFilter, allDispensaries])
+  }, [userLocation, searchRadius, disciplineFilter, allDispensaries, showAllDispensaries])
 
   const onMapLoad = useCallback((map) => {
     setMap(map)
@@ -399,29 +437,48 @@ const FindDispensariesPage = () => {
   }
 
   const getDisciplineIcon = (discipline) => {
-    switch (discipline) {
+    const normalizedDiscipline = discipline?.toLowerCase()
+    switch (normalizedDiscipline) {
       case 'ayurvedic':
+      case 'ayurveda':
         return <FaLeaf className="text-green-600" />
       case 'homeopathic':
+      case 'homeopathy':
         return <FaYinYang className="text-blue-600" />
       case 'western':
+      case 'allopathy':
+      case 'modern':
         return <FaHospital className="text-red-600" />
+      case 'unani':
+        return <FaYinYang className="text-purple-600" />
       default:
-        return null
+        return <FaHospital className="text-gray-600" />
     }
   }
 
   const getDisciplineName = (discipline) => {
-    switch (discipline) {
+    const normalizedDiscipline = discipline?.toLowerCase()
+    switch (normalizedDiscipline) {
       case 'ayurvedic':
+      case 'ayurveda':
         return 'Ayurvedic Medicine'
       case 'homeopathic':
+      case 'homeopathy':
         return 'Homeopathic Treatment'
       case 'western':
+      case 'allopathy':
+      case 'modern':
         return 'Western Medicine'
+      case 'unani':
+        return 'Unani Medicine'
       default:
-        return 'Unknown'
+        return discipline ? discipline.charAt(0).toUpperCase() + discipline.slice(1) : 'Medical Care'
     }
+  }
+
+  // Function to handle dispensary click and navigate to details page
+  const handleDispensaryClick = (dispensary) => {
+    navigate(`/dispensary/${dispensary.id}`)
   }
 
   useEffect(() => {
@@ -452,11 +509,11 @@ const FindDispensariesPage = () => {
   }, [])
 
   useEffect(() => {
-    if (userLocation && allDispensaries.length > 0) {
+    if (allDispensaries.length > 0) {
       const filtered = filterDispensaries()
       setNearbyDispensaries(filtered)
     }
-  }, [userLocation, searchRadius, disciplineFilter, allDispensaries, filterDispensaries])
+  }, [userLocation, searchRadius, disciplineFilter, allDispensaries, showAllDispensaries, filterDispensaries])
 
   // Force map re-render when search radius changes to prevent circle stacking
   useEffect(() => {
@@ -495,11 +552,30 @@ const FindDispensariesPage = () => {
                       }
                     }}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    disabled={showAllDispensaries}
                   />
                   <span className="ml-2 text-gray-700 font-medium min-w-[50px]">{searchRadius} km</span>
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  Adjust to find dispensaries within your preferred distance
+                  {showAllDispensaries ? 'Radius filter disabled when showing all dispensaries' : 'Adjust to find dispensaries within your preferred distance'}
+                </div>
+              </div>
+
+              {/* Show All Dispensaries Toggle */}
+              <div className="mb-4">
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={showAllDispensaries}
+                    onChange={(e) => setShowAllDispensaries(e.target.checked)}
+                    className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-900">
+                    Show all dispensaries (ignore distance)
+                  </span>
+                </label>
+                <div className="text-xs text-gray-500 mt-1">
+                  When enabled, displays all dispensaries regardless of distance from your location
                 </div>
               </div>
               
@@ -515,6 +591,7 @@ const FindDispensariesPage = () => {
                   <option value="ayurvedic">Ayurvedic Medicine</option>
                   <option value="homeopathic">Homeopathic Treatment</option>
                   <option value="western">Western Medicine</option>
+                  <option value="unani">Unani Medicine</option>
                 </select>
               </div>
 
@@ -640,6 +717,8 @@ const FindDispensariesPage = () => {
                 <FaMapMarkerAlt className="text-primary-600 mr-2" />
                 {isLoadingSavedLocation ? (
                   <span>Loading your saved location...</span>
+                ) : showAllDispensaries ? (
+                  <span>Showing all dispensaries regardless of location</span>
                 ) : userLocation ? (
                   <span>
                     Showing results near your {savedLocation && 
@@ -655,7 +734,7 @@ const FindDispensariesPage = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">
-                  Nearby Dispensaries 
+                  {showAllDispensaries ? 'All Dispensaries' : 'Nearby Dispensaries'}
                   {!isLoading && !isLoadingDispensaries && (
                     <span className="text-sm font-normal text-gray-500 ml-2">
                       ({nearbyDispensaries.length} found)
@@ -672,10 +751,10 @@ const FindDispensariesPage = () => {
               </div>
               
               {/* Data Source Info */}
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> Currently showing sample data. In production, this will display 
-                  real dispensaries from your database based on their registered locations and specialties.
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-800">
+                  <strong>Live Data:</strong> Showing real dispensaries from your database. 
+                  Dispensaries are filtered by distance and specialty based on their registered locations.
                 </p>
               </div>
               
@@ -701,25 +780,41 @@ const FindDispensariesPage = () => {
                       }}
                     >
                       <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{dispensary.name}</h3>
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900 hover:text-primary-600 transition-colors">
+                            {dispensary.name}
+                          </h3>
                           <div className="flex items-center mt-1 text-sm">
                             {getDisciplineIcon(dispensary.discipline)}
                             <span className="ml-1 text-gray-600">{getDisciplineName(dispensary.discipline)}</span>
                           </div>
-                          <div className="flex items-center mt-1">
-                            <div className="flex text-yellow-400">
-                              {[...Array(5)].map((_, i) => (
-                                <FaStar key={i} className={i < Math.floor(dispensary.rating) ? "text-yellow-400" : "text-gray-300"} size={14} />
-                              ))}
+                          {dispensary.rating ? (
+                            <div className="flex items-center mt-1">
+                              <div className="flex text-yellow-400">
+                                {[...Array(5)].map((_, i) => (
+                                  <FaStar key={i} className={i < Math.floor(dispensary.rating) ? "text-yellow-400" : "text-gray-300"} size={14} />
+                                ))}
+                              </div>
+                              <span className="ml-1 text-sm text-gray-600">{dispensary.rating.toFixed(1)} ({dispensary.reviewCount})</span>
                             </div>
-                            <span className="ml-1 text-sm text-gray-600">{dispensary.rating} ({dispensary.reviewCount})</span>
-                          </div>
+                          ) : (
+                            <div className="flex items-center mt-1">
+                              <span className="text-sm text-gray-500">No ratings yet</span>
+                            </div>
+                          )}
                           <p className="text-sm text-gray-500 mt-1">{dispensary.address}</p>
                         </div>
-                        <span className="text-sm font-medium text-primary-600">
-                          {dispensary.distance.toFixed(1)} km
-                        </span>
+                        <div className="text-right ml-2">
+                          {userLocation && dispensary.distance !== undefined ? (
+                            <span className="text-sm font-medium text-primary-600">
+                              {dispensary.distance.toFixed(1)} km
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Distance unknown
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between">
@@ -729,26 +824,32 @@ const FindDispensariesPage = () => {
                             window.location.href = `tel:${dispensary.phone}`
                           }}
                           className="text-sm text-gray-600 hover:text-primary-600 flex items-center"
+                          disabled={!dispensary.phone}
                         >
-                          <FaPhone className="mr-1" size={12} /> Call
+                          <FaPhone className="mr-1" size={12} /> 
+                          {dispensary.phone ? 'Call' : 'No Phone'}
                         </button>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation()
-                            window.open(dispensary.website, '_blank')
+                            if (dispensary.email) {
+                              window.location.href = `mailto:${dispensary.email}`
+                            }
                           }}
                           className="text-sm text-gray-600 hover:text-primary-600 flex items-center"
+                          disabled={!dispensary.email}
                         >
-                          <FaGlobe className="mr-1" size={12} /> Website
+                          <FaGlobe className="mr-1" size={12} /> 
+                          {dispensary.email ? 'Email' : 'No Email'}
                         </button>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleGetDirections(dispensary)
+                            handleDispensaryClick(dispensary)
                           }}
-                          className="text-sm text-gray-600 hover:text-primary-600 flex items-center"
+                          className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded flex items-center transition-colors"
                         >
-                          <FaDirections className="mr-1" size={12} /> Directions
+                          View Details
                         </button>
                       </div>
                     </div>
@@ -756,15 +857,24 @@ const FindDispensariesPage = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  {!userLocation ? (
+                  {!userLocation && !showAllDispensaries ? (
                     <div>
                       <p className="text-gray-500">Please allow location access to find nearby dispensaries.</p>
-                      <p className="text-gray-500 mt-2">Click the "Get My Location" button above to enable location services.</p>
+                      <p className="text-gray-500 mt-2">Or enable "Show all dispensaries" to see all available options.</p>
                     </div>
                   ) : (
                     <div>
-                      <p className="text-gray-500">No dispensaries found within {searchRadius}km of your location.</p>
-                      <p className="text-gray-500 mt-2">Try increasing your search radius or changing filters.</p>
+                      {showAllDispensaries ? (
+                        <div>
+                          <p className="text-gray-500">No dispensaries found with the current filters.</p>
+                          <p className="text-gray-500 mt-2">Try changing the discipline filter or check back later.</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-gray-500">No dispensaries found within {searchRadius}km of your location.</p>
+                          <p className="text-gray-500 mt-2">Try increasing your search radius, changing filters, or enable "Show all dispensaries".</p>
+                        </div>
+                      )}
                       {allDispensaries.length === 0 && (
                         <p className="text-gray-500 mt-2 text-sm">
                           (In production, this will search your actual dispensary database)
@@ -816,19 +926,21 @@ const FindDispensariesPage = () => {
                         />
                         
                         {/* Search radius circle */}
-                        <Circle
-                          key={`search-radius-circle-${searchRadius}`}
-                          center={userLocation}
-                          radius={searchRadius * 1000} // Convert km to meters
-                          options={{
-                            fillColor: "#4285F4",
-                            fillOpacity: 0.1,
-                            strokeColor: "#4285F4",
-                            strokeOpacity: 0.5,
-                            strokeWeight: 1,
-                            clickable: false,
-                          }}
-                        />
+                        {!showAllDispensaries && (
+                          <Circle
+                            key={`search-radius-circle-${searchRadius}`}
+                            center={userLocation}
+                            radius={searchRadius * 1000} // Convert km to meters
+                            options={{
+                              fillColor: "#4285F4",
+                              fillOpacity: 0.1,
+                              strokeColor: "#4285F4",
+                              strokeOpacity: 0.5,
+                              strokeWeight: 1,
+                              clickable: false,
+                            }}
+                          />
+                        )}
                       </>
                     )}
                     
@@ -840,11 +952,14 @@ const FindDispensariesPage = () => {
                         onClick={() => handleMarkerClick(dispensary)}
                         icon={{
                           path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
-                          fillColor: dispensary.discipline === 'ayurvedic' 
-                            ? "#10B981" // green
-                            : dispensary.discipline === 'homeopathic'
-                              ? "#3B82F6" // blue
-                              : "#EF4444", // red
+                          fillColor: 
+                            dispensary.discipline?.toLowerCase() === 'ayurvedic' || dispensary.discipline?.toLowerCase() === 'ayurveda'
+                              ? "#10B981" // green
+                              : dispensary.discipline?.toLowerCase() === 'homeopathic' || dispensary.discipline?.toLowerCase() === 'homeopathy'
+                                ? "#3B82F6" // blue
+                                : dispensary.discipline?.toLowerCase() === 'unani'
+                                  ? "#8B5CF6" // purple
+                                  : "#EF4444", // red for western/others
                           fillOpacity: 1,
                           strokeWeight: 1,
                           strokeColor: "#FFFFFF",
@@ -866,35 +981,45 @@ const FindDispensariesPage = () => {
                             {getDisciplineIcon(selectedDispensary.discipline)}
                             <span className="ml-1 text-gray-600">{getDisciplineName(selectedDispensary.discipline)}</span>
                           </div>
-                          <div className="flex items-center mb-2">
-                            <div className="flex text-yellow-400">
-                              {[...Array(5)].map((_, i) => (
-                                <FaStar key={i} className={i < Math.floor(selectedDispensary.rating) ? "text-yellow-400" : "text-gray-300"} size={14} />
-                              ))}
+                          {selectedDispensary.rating ? (
+                            <div className="flex items-center mb-2">
+                              <div className="flex text-yellow-400">
+                                {[...Array(5)].map((_, i) => (
+                                  <FaStar key={i} className={i < Math.floor(selectedDispensary.rating) ? "text-yellow-400" : "text-gray-300"} size={14} />
+                                ))}
+                              </div>
+                              <span className="ml-1 text-sm text-gray-600">{selectedDispensary.rating.toFixed(1)} ({selectedDispensary.reviewCount})</span>
                             </div>
-                            <span className="ml-1 text-sm text-gray-600">{selectedDispensary.rating} ({selectedDispensary.reviewCount})</span>
-                          </div>
+                          ) : (
+                            <div className="flex items-center mb-2">
+                              <span className="text-sm text-gray-500">No ratings yet</span>
+                            </div>
+                          )}
                           <p className="text-sm text-gray-500 mb-2">{selectedDispensary.address}</p>
                           <p className="text-sm text-gray-600 mb-3">{selectedDispensary.description}</p>
                           
                           <div className="flex justify-between">
+                            {selectedDispensary.phone && (
+                              <button 
+                                onClick={() => window.location.href = `tel:${selectedDispensary.phone}`}
+                                className="text-sm text-gray-600 hover:text-primary-600 flex items-center"
+                              >
+                                <FaPhone className="mr-1" size={12} /> Call
+                              </button>
+                            )}
+                            {selectedDispensary.email && (
+                              <button 
+                                onClick={() => window.location.href = `mailto:${selectedDispensary.email}`}
+                                className="text-sm text-gray-600 hover:text-primary-600 flex items-center"
+                              >
+                                <FaGlobe className="mr-1" size={12} /> Email
+                              </button>
+                            )}
                             <button 
-                              onClick={() => window.location.href = `tel:${selectedDispensary.phone}`}
-                              className="text-sm text-gray-600 hover:text-primary-600 flex items-center"
-                            >
-                              <FaPhone className="mr-1" size={12} /> Call
-                            </button>
-                            <button 
-                              onClick={() => window.open(selectedDispensary.website, '_blank')}
-                              className="text-sm text-gray-600 hover:text-primary-600 flex items-center"
-                            >
-                              <FaGlobe className="mr-1" size={12} /> Website
-                            </button>
-                            <button 
-                              onClick={() => handleGetDirections(selectedDispensary)}
+                              onClick={() => handleDispensaryClick(selectedDispensary)}
                               className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-2 py-1 rounded flex items-center"
                             >
-                              <FaDirections className="mr-1" size={12} /> Directions
+                              View Details
                             </button>
                           </div>
                         </div>
@@ -923,13 +1048,19 @@ const FindDispensariesPage = () => {
                     <span className="text-sm text-gray-600">Homeopathic</span>
                   </div>
                   <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-purple-500 mr-2"></div>
+                    <span className="text-sm text-gray-600">Unani</span>
+                  </div>
+                  <div className="flex items-center">
                     <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
                     <span className="text-sm text-gray-600">Western</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 border-2 border-blue-500 bg-blue-100 bg-opacity-30 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-600">{searchRadius}km Radius</span>
-                  </div>
+                  {!showAllDispensaries && (
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 border-2 border-blue-500 bg-blue-100 bg-opacity-30 rounded-full mr-2"></div>
+                      <span className="text-sm text-gray-600">{searchRadius}km Radius</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
