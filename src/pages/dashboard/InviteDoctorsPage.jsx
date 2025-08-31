@@ -9,6 +9,7 @@ const InviteDoctorsPage = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [activeTab, setActiveTab] = useState('available') // 'available' or 'invited'
+  const [validationError, setValidationError] = useState('')
 
   const daysOfWeek = [
     'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'
@@ -31,11 +32,88 @@ const InviteDoctorsPage = () => {
       ...invitationForm,
       doctorId: doctor.id
     })
+    setValidationError('')
     setShowInviteModal(true)
+  }
+
+  const handleFormChange = (field, value) => {
+    const updatedForm = { ...invitationForm, [field]: value }
+    setInvitationForm(updatedForm)
+    
+    // Clear validation error when user makes changes
+    if (validationError) {
+      setValidationError('')
+    }
+    
+    // If we have start and end time filled, validate in real-time
+    if (updatedForm.startTime && updatedForm.endTime) {
+      const validation = validateTimeSlotForForm(updatedForm)
+      if (!validation.isValid) {
+        setValidationError(validation.message)
+      }
+    }
+  }
+
+  const validateTimeSlotForForm = (form) => {
+    const { startTime, endTime, perPatientMinutes } = form
+    
+    // If we don't have start and end time, no validation needed
+    if (!startTime || !endTime) {
+      return { isValid: true, message: '' }
+    }
+
+    // Convert times to minutes for easier calculation
+    const [startHour, startMin] = startTime.split(':').map(Number)
+    const [endHour, endMin] = endTime.split(':').map(Number)
+    
+    const startMinutes = startHour * 60 + startMin
+    const endMinutes = endHour * 60 + endMin
+    
+    // Check if end time is after start time
+    if (endMinutes <= startMinutes) {
+      return { isValid: false, message: 'End time must be after start time.' }
+    }
+    
+    // Calculate duration in minutes
+    const durationMinutes = endMinutes - startMinutes
+    
+    // Check if duration exceeds 6 hours (360 minutes) - show this error first
+    if (durationMinutes > 360) {
+      return { 
+        isValid: false, 
+        message: 'Time slot duration cannot exceed 6 hours.' 
+      }
+    }
+    
+    // Check if end time crosses midnight (after 11:59 PM)
+    if (endHour >= 24 || (endHour === 23 && endMin === 59)) {
+      return { 
+        isValid: false, 
+        message: 'End time cannot cross midnight. Please create a separate invitation for the next day.' 
+      }
+    }
+    
+    // Only check per patient minutes if it's selected
+    if (perPatientMinutes && durationMinutes < perPatientMinutes) {
+      return { 
+        isValid: false, 
+        message: `Time slot duration (${durationMinutes} minutes) must be at least ${perPatientMinutes} minutes per patient.` 
+      }
+    }
+    
+    return { isValid: true, message: '' }
   }
 
   const handleSubmitInvitation = async (e) => {
     e.preventDefault()
+    
+    // Validate time slot
+    const validation = validateTimeSlot()
+    if (!validation.isValid) {
+      error(validation.message)
+      return
+    }
+    
     try {
       await sendInvitation(invitationForm)
       success('Invitation sent successfully!')
@@ -84,6 +162,55 @@ const InviteDoctorsPage = () => {
       hour: '2-digit', 
       minute: '2-digit' 
     })
+  }
+
+  const validateTimeSlot = () => {
+    const { startTime, endTime, perPatientMinutes } = invitationForm
+    
+    if (!startTime || !endTime || !perPatientMinutes) {
+      return { isValid: false, message: 'Please fill in all time fields.' }
+    }
+
+    // Convert times to minutes for easier calculation
+    const [startHour, startMin] = startTime.split(':').map(Number)
+    const [endHour, endMin] = endTime.split(':').map(Number)
+    
+    const startMinutes = startHour * 60 + startMin
+    const endMinutes = endHour * 60 + endMin
+    
+    // Check if end time is after start time
+    if (endMinutes <= startMinutes) {
+      return { isValid: false, message: 'End time must be after start time.' }
+    }
+    
+    // Calculate duration in minutes
+    const durationMinutes = endMinutes - startMinutes
+    
+    // Check if duration is less than per patient minutes
+    if (durationMinutes < perPatientMinutes) {
+      return { 
+        isValid: false, 
+        message: `Time slot duration (${durationMinutes} minutes) must be at least ${perPatientMinutes} minutes per patient.` 
+      }
+    }
+    
+    // Check if duration exceeds 6 hours (360 minutes)
+    if (durationMinutes > 360) {
+      return { 
+        isValid: false, 
+        message: 'Time slot duration cannot exceed 6 hours.' 
+      }
+    }
+    
+    // Check if end time crosses midnight (after 11:59 PM)
+    if (endHour >= 24 || (endHour === 23 && endMin === 59)) {
+      return { 
+        isValid: false, 
+        message: 'End time cannot cross midnight. Please create a separate invitation for the next day.' 
+      }
+    }
+    
+    return { isValid: true, message: '' }
   }
 
   return (
@@ -266,7 +393,10 @@ const InviteDoctorsPage = () => {
                 Invite Dr. {selectedDoctor.name}
               </h3>
               <button
-                onClick={() => setShowInviteModal(false)}
+                onClick={() => {
+                  setShowInviteModal(false)
+                  setValidationError('')
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <FaTimes className="h-5 w-5" />
@@ -280,7 +410,7 @@ const InviteDoctorsPage = () => {
                 </label>
                 <select
                   value={invitationForm.day}
-                  onChange={(e) => setInvitationForm({...invitationForm, day: e.target.value})}
+                  onChange={(e) => handleFormChange('day', e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   required
                 >
@@ -301,7 +431,7 @@ const InviteDoctorsPage = () => {
                   <input
                     type="time"
                     value={invitationForm.startTime}
-                    onChange={(e) => setInvitationForm({...invitationForm, startTime: e.target.value})}
+                    onChange={(e) => handleFormChange('startTime', e.target.value)}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
@@ -313,28 +443,42 @@ const InviteDoctorsPage = () => {
                   <input
                     type="time"
                     value={invitationForm.endTime}
-                    onChange={(e) => setInvitationForm({...invitationForm, endTime: e.target.value})}
+                    onChange={(e) => handleFormChange('endTime', e.target.value)}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                 </div>
               </div>
 
+              {/* Validation Error Display - moved here after time inputs */}
+              {validationError && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <FaTimes className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-red-800">{validationError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Minutes per Patient
                 </label>
-                <input
-                  type="number"
-                  min="15"
-                  max="120"
-                  step="15"
+                <select
                   value={invitationForm.perPatientMinutes}
-                  onChange={(e) => setInvitationForm({...invitationForm, perPatientMinutes: parseInt(e.target.value) || ''})}
+                  onChange={(e) => handleFormChange('perPatientMinutes', parseInt(e.target.value) || '')}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., 30"
                   required
-                />
+                >
+                  <option value="">Select duration</option>
+                  <option value={15}>15 minutes</option>
+                  <option value={30}>30 minutes</option>
+                  <option value={45}>45 minutes</option>
+                </select>
               </div>
 
               <div>
@@ -346,7 +490,7 @@ const InviteDoctorsPage = () => {
                   min="0"
                   step="0.01"
                   value={invitationForm.offerRate}
-                  onChange={(e) => setInvitationForm({...invitationForm, offerRate: parseFloat(e.target.value) || ''})}
+                  onChange={(e) => handleFormChange('offerRate', parseFloat(e.target.value) || '')}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter doctor's offer rate"
                   required
@@ -362,7 +506,7 @@ const InviteDoctorsPage = () => {
                   min="0"
                   step="0.01"
                   value={invitationForm.perPatientRate}
-                  onChange={(e) => setInvitationForm({...invitationForm, perPatientRate: parseFloat(e.target.value) || ''})}
+                  onChange={(e) => handleFormChange('perPatientRate', parseFloat(e.target.value) || '')}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter per patient rate"
                   required
@@ -372,7 +516,10 @@ const InviteDoctorsPage = () => {
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowInviteModal(false)}
+                  onClick={() => {
+                    setShowInviteModal(false)
+                    setValidationError('')
+                  }}
                   className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
                 >
                   Cancel
