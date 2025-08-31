@@ -47,9 +47,7 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
         { path: '/dashboard/dispensary/profile', label: 'Profile', icon: FaUser },
         { path: '/dashboard/dispensary/location', label: 'Update Location', icon: FaMapMarkerAlt },
         { path: '/dashboard/dispensary/invite-doctors', label: 'Invite Doctors', icon: FaEnvelope },
-        { path: '/dashboard/dispensary/doctors', label: 'My Doctors', icon: FaUserMd },
-        { path: '/dashboard/dispensary/prescriptions', label: 'Prescriptions', icon: FaClipboardList },
-        { path: '/dashboard/dispensary/settings', label: 'Settings', icon: FaCog }
+        { path: '/dashboard/dispensary/bookings', label: 'Doctor Bookings', icon: FaUserMd }
       ],
       DOCTOR: [
         ...commonItems,

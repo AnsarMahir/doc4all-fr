@@ -1,14 +1,17 @@
 // pages/dashboard/DoctorDashboard.jsx
-import { FaEnvelope, FaStethoscope, FaClipboardList, FaChartLine } from 'react-icons/fa'
+import { FaEnvelope, FaStethoscope, FaClipboardList, FaChartLine, FaSpinner, FaExclamationTriangle } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { useDoctorProfileCompletion } from '../../hooks/useDoctorProfileCompletion'
+import { useDoctorDashboard } from '../../hooks/useDoctorDashboard'
 import DoctorProfileCompletion from '../../components/DoctorProfileCompletion'
+import DashboardCharts from '../../components/DashboardCharts'
 
 const DoctorDashboard = () => {
-  const { isComplete, loading, markProfileComplete, recheckStatus } = useDoctorProfileCompletion()
+  const { isComplete, loading: profileLoading, markProfileComplete, recheckStatus } = useDoctorProfileCompletion()
+  const { stats, recentBookings, invitations, chartData, loading: dashboardLoading, error, refetch } = useDoctorDashboard()
   
   // Show loading while checking profile status
-  if (loading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -31,6 +34,7 @@ const DoctorDashboard = () => {
     
     return <DoctorProfileCompletion onComplete={handleProfileComplete} />
   }
+
   const quickActions = [
     {
       title: 'View Invitations',
@@ -38,7 +42,7 @@ const DoctorDashboard = () => {
       icon: FaEnvelope,
       link: '/dashboard/doctor/invitations',
       color: 'bg-blue-500',
-      badge: '3' // New invitations
+      badge: stats.pendingInvitations > 0 ? stats.pendingInvitations.toString() : null
     },
     {
       title: 'Practice Overview',
@@ -63,31 +67,66 @@ const DoctorDashboard = () => {
     }
   ]
 
-  const stats = [
-    { label: 'Total Patients', value: '67', color: 'text-blue-600' },
-    { label: 'Active Dispensaries', value: '4', color: 'text-green-600' },
-    { label: 'This Week Prescriptions', value: '23', color: 'text-purple-600' },
-    { label: 'Pending Invitations', value: '3', color: 'text-orange-600' }
+  const statsConfig = [
+    { label: 'Total Patients', value: stats.totalPatients, color: 'text-blue-600' },
+    { label: 'Active Dispensaries', value: stats.activeDispensaries, color: 'text-green-600' },
+    { label: 'Confirmed Appointments', value: stats.weeklyAppointments, color: 'text-purple-600' },
+    { label: 'Pending Invitations', value: stats.pendingInvitations, color: 'text-orange-600' }
   ]
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <FaExclamationTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Dashboard</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Doctor Dashboard</h1>
         <p className="text-gray-600 mt-2">Manage your practice and connect with dispensaries.</p>
+        {dashboardLoading && (
+          <div className="mt-2 flex items-center text-sm text-gray-500">
+            <FaSpinner className="animate-spin mr-2" />
+            Loading dashboard data...
+          </div>
+        )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat) => (
+        {statsConfig.map((stat) => (
           <div key={stat.label} className="bg-white rounded-lg shadow p-6">
             <div className="text-center">
-              <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+              <p className={`text-3xl font-bold ${stat.color}`}>
+                {dashboardLoading ? (
+                  <FaSpinner className="animate-spin h-8 w-8 mx-auto" />
+                ) : (
+                  stat.value
+                )}
+              </p>
               <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Charts Section */}
+      {!dashboardLoading && chartData && (
+        <DashboardCharts chartData={chartData} />
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -118,54 +157,87 @@ const DoctorDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Recent Prescriptions</h3>
+            <h3 className="text-lg font-medium text-gray-900">Recent Appointments</h3>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {[1, 2, 3].map((item) => (
-                <div key={item} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Prescription for Jane Doe</p>
-                    <p className="text-sm text-gray-500">Medication: Amoxicillin 500mg</p>
-                    <p className="text-xs text-gray-400">{item} days ago</p>
+            {dashboardLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <FaSpinner className="animate-spin h-8 w-8 text-gray-400" />
+              </div>
+            ) : recentBookings.length > 0 ? (
+              <div className="space-y-4">
+                {recentBookings.map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {booking.patient_name || `Patient #${booking.patient_id}`}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {booking.dispensary_name}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(booking.booking_date).toLocaleDateString()} at {booking.booking_time}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      booking.status === 'CONFIRMED' 
+                        ? 'bg-green-100 text-green-800'
+                        : booking.status === 'PENDING'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {booking.status}
+                    </span>
                   </div>
-                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                    Fulfilled
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No recent appointments</p>
+            )}
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">New Invitations</h3>
+            <h3 className="text-lg font-medium text-gray-900">Recent Invitations</h3>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {[
-                { dispensary: 'MediCare Pharmacy', location: 'Downtown', date: '2 hours ago' },
-                { dispensary: 'HealthPlus Dispensary', location: 'Mall Area', date: '1 day ago' },
-                { dispensary: 'City Medical Center', location: 'North Side', date: '2 days ago' }
-              ].map((invitation, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{invitation.dispensary}</p>
-                    <p className="text-sm text-gray-500">{invitation.location}</p>
-                    <p className="text-xs text-gray-400">{invitation.date}</p>
+            {dashboardLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <FaSpinner className="animate-spin h-8 w-8 text-gray-400" />
+              </div>
+            ) : invitations.length > 0 ? (
+              <div className="space-y-4">
+                {invitations.map((invitation) => (
+                  <div key={invitation.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {invitation.dispensary_name || 'Unknown Dispensary'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {invitation.dispensary_location || 'Location not specified'}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {invitation.created_at 
+                          ? new Date(invitation.created_at).toLocaleDateString()
+                          : 'Recently received'
+                        }
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Link
+                        to="/dashboard/doctor/invitations"
+                        className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+                      >
+                        View
+                      </Link>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <button className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded hover:bg-green-200">
-                      Accept
-                    </button>
-                    <button className="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded hover:bg-red-200">
-                      Decline
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No pending invitations</p>
+            )}
           </div>
         </div>
       </div>
