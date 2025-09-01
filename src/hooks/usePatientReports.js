@@ -163,60 +163,48 @@ export const usePatientReports = () => {
     })
   }
 
-  // Fetch doctors from completed bookings
-  const fetchCompletedDoctors = async () => {
+  // Fetch sharing options for a specific report
+  const fetchSharingOptions = async (reportId) => {
     try {
-      setLoadingDoctors(true)
-      console.log('Fetching completed bookings to get doctors...')
+      console.log('Fetching sharing options for report:', reportId)
       
-      const data = await get(API_CONFIG.ENDPOINTS.PATIENT.BOOKINGS)
-      console.log('Bookings data received:', data)
-      
-      // Filter completed bookings and extract unique doctors
-      const completedBookings = (data || []).filter(
-        booking => booking.status === 'COMPLETED' && booking.paymentStatus === 'PAID'
-      )
-      
-      // Extract unique doctors
-      const doctorsMap = new Map()
-      completedBookings.forEach(booking => {
-        if (booking.doctor && booking.doctor.id) {
-          doctorsMap.set(booking.doctor.id, {
-            id: booking.doctor.id,
-            name: booking.doctor.name,
-            email: booking.doctor.email,
-            specialities: booking.doctor.specialities,
-            experience: booking.doctor.experience
-          })
-        }
+      const fullUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT.SHARING_OPTIONS(reportId)}`
+      const response = await apiCall(fullUrl, {
+        method: 'GET'
       })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch sharing options')
+      }
+
+      const data = await response.json()
+      console.log('Sharing options received:', data)
       
-      const uniqueDoctors = Array.from(doctorsMap.values())
-      console.log('Completed doctors:', uniqueDoctors)
-      setCompletedDoctors(uniqueDoctors)
+      return {
+        alreadyShared: data.alreadyShared || [],
+        availableToShare: data.availableToShare || []
+      }
       
     } catch (err) {
-      console.error('Failed to fetch completed doctors:', err)
-      setReportError('Failed to load doctors for sharing')
-    } finally {
-      setLoadingDoctors(false)
+      console.error('Failed to fetch sharing options:', err)
+      throw new Error(err.message || 'Failed to fetch sharing options')
     }
   }
 
-  // Share report with selected doctors
-  const shareReport = async (reportId, doctorIds) => {
-    if (!reportId || !doctorIds || doctorIds.length === 0) {
-      setReportError('Please select at least one doctor to share with')
+  // Share report with a single doctor
+  const shareReport = async (reportId, doctorId) => {
+    if (!reportId || !doctorId) {
+      setReportError('Invalid report or doctor selection')
       return false
     }
 
     try {
-      console.log('Sharing report:', reportId, 'with doctors:', doctorIds)
+      console.log('Sharing report:', reportId, 'with doctor:', doctorId)
       
       const fullUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT.SHARE_REPORT(reportId)}`
       const response = await apiCall(fullUrl, {
         method: 'POST',
-        body: JSON.stringify({ doctorIds }),
+        body: JSON.stringify({ doctorId }),
         headers: {
           'Content-Type': 'application/json'
         }
@@ -244,20 +232,20 @@ export const usePatientReports = () => {
     }
   }
 
-  // Revoke report access from selected doctors
-  const revokeReport = async (reportId, doctorIds) => {
-    if (!reportId || !doctorIds || doctorIds.length === 0) {
-      setReportError('Please select at least one doctor to revoke access from')
+  // Revoke report access from a single doctor
+  const revokeReport = async (reportId, doctorId) => {
+    if (!reportId || !doctorId) {
+      setReportError('Invalid report or doctor selection')
       return false
     }
 
     try {
-      console.log('Revoking report:', reportId, 'from doctors:', doctorIds)
+      console.log('Revoking report:', reportId, 'from doctor:', doctorId)
       
       const fullUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT.REVOKE_REPORT(reportId)}`
       const response = await apiCall(fullUrl, {
         method: 'POST',
-        body: JSON.stringify({ doctorIds }),
+        body: JSON.stringify({ doctorId }),
         headers: {
           'Content-Type': 'application/json'
         }
@@ -287,7 +275,6 @@ export const usePatientReports = () => {
 
   useEffect(() => {
     fetchReports()
-    fetchCompletedDoctors()
   }, [])
 
   return {
@@ -297,11 +284,10 @@ export const usePatientReports = () => {
     uploading,
     reportError,
     successMessage,
-    completedDoctors,
     loadingDoctors,
     uploadReport,
     fetchReports,
-    fetchCompletedDoctors,
+    fetchSharingOptions,
     shareReport,
     revokeReport,
     formatFileSize,

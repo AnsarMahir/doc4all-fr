@@ -11,9 +11,9 @@ const PatientReports = () => {
     uploading, 
     reportError,
     successMessage,
-    completedDoctors,
     loadingDoctors,
     uploadReport, 
+    fetchSharingOptions,
     shareReport,
     revokeReport,
     formatFileSize, 
@@ -97,7 +97,7 @@ const PatientReports = () => {
         isOpen={showSharingModal}
         onClose={handleSharingModalClose}
         report={selectedReport}
-        doctors={completedDoctors}
+        onFetchSharingOptions={fetchSharingOptions}
         onShare={shareReport}
         onRevoke={revokeReport}
         loading={uploading || loadingDoctors}
