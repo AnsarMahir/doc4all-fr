@@ -35,8 +35,14 @@ const HowItWorksSection = () => {
   ]
 
   return (
-    <section className="py-16 bg-gradient-to-r from-primary-600 to-secondary-600 text-white">
-      <div className="container mx-auto px-4">
+    <section className="relative py-16 bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 text-white overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-10 left-10 w-80 h-80 bg-white rounded-full mix-blend-overlay filter blur-xl opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-primary-300 rounded-full mix-blend-overlay filter blur-xl opacity-20 animate-pulse delay-1000"></div>
+      </div>
+      
+      <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">How It Works</h2>
           <p className="text-xl max-w-3xl mx-auto opacity-90">
@@ -47,9 +53,9 @@ const HowItWorksSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {steps.map((step, index) => (
             <div key={index} className="relative">
-              <div className="bg-white bg-opacity-10 p-6 rounded-lg backdrop-blur-sm border border-white border-opacity-20 h-full">
+              <div className="bg-white/10 backdrop-blur-sm p-6 rounded-lg border border-white/20 h-full hover:bg-white/15 transform hover:scale-105 transition-all duration-300 shadow-lg">
                 <div className="flex items-center mb-4">
-                  <div className="bg-primary-700 w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg">
+                  <div className="bg-primary-500/80 w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg">
                     {step.icon}
                   </div>
                   <span className="text-2xl font-bold">Step {index + 1}</span>

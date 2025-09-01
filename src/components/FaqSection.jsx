@@ -44,10 +44,16 @@ const FaqSection = () => {
   }
 
   return (
-    <section className="py-16">
-      <div className="container mx-auto px-4">
+    <section className="relative py-16 bg-gradient-to-br from-white via-primary-50 to-primary-100 overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-0 w-64 h-64 bg-primary-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-15 animate-pulse delay-1000"></div>
+      </div>
+      
+      <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent mb-4">Frequently Asked Questions</h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Find answers to common questions about using Doc4All for your healthcare needs.
           </p>
@@ -58,15 +64,15 @@ const FaqSection = () => {
             <div key={index} className="mb-4">
               <button
                 className={`w-full text-left p-4 flex justify-between items-center rounded-lg ${
-                  openIndex === index ? 'bg-primary-50 text-primary-700' : 'bg-white hover:bg-gray-50'
-                } border border-gray-200 transition-colors duration-200`}
+                  openIndex === index ? 'bg-primary-50/80 text-primary-700 shadow-lg' : 'bg-white/80 hover:bg-primary-50/50'
+                } backdrop-blur-sm border border-primary-100 transition-all duration-300 hover:shadow-md`}
                 onClick={() => toggleFaq(index)}
               >
                 <span className="font-medium text-lg">{faq.question}</span>
-                {openIndex === index ? <FaChevronUp /> : <FaChevronDown />}
+                {openIndex === index ? <FaChevronUp className="text-primary-600" /> : <FaChevronDown className="text-primary-600" />}
               </button>
               {openIndex === index && (
-                <div className="p-4 bg-white border border-t-0 border-gray-200 rounded-b-lg">
+                <div className="p-4 bg-white/80 backdrop-blur-sm border border-t-0 border-primary-100 rounded-b-lg shadow-lg">
                   <p className="text-gray-700">{faq.answer}</p>
                 </div>
               )}

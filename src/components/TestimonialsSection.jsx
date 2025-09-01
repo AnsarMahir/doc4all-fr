@@ -57,10 +57,16 @@ const TestimonialsSection = () => {
   }
 
   return (
-    <section className="py-16 bg-gray-50">
-      <div className="container mx-auto px-4">
+    <section className="relative py-16 bg-gradient-to-tr from-primary-50 via-white to-primary-100 overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-1/4 w-72 h-72 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary-300 rounded-full mix-blend-multiply filter blur-xl opacity-15 animate-pulse delay-1000"></div>
+      </div>
+      
+      <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">What Our Users Say</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent mb-4">What Our Users Say</h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Discover how Doc4All is transforming healthcare experiences for patients and providers alike.
           </p>
@@ -69,7 +75,7 @@ const TestimonialsSection = () => {
         <div className="relative max-w-6xl mx-auto">
           <div className="hidden md:grid md:grid-cols-3 gap-6">
             {visibleTestimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-md">
+              <div key={index} className="bg-white/80 backdrop-blur-sm p-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-primary-100">
                 <div className="text-primary-600 mb-4">
                   <FaQuoteLeft size={24} />
                 </div>
@@ -92,7 +98,7 @@ const TestimonialsSection = () => {
 
           {/* Mobile view - single testimonial */}
           <div className="md:hidden">
-            <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-primary-100">
               <div className="text-primary-600 mb-4">
                 <FaQuoteLeft size={24} />
               </div>
@@ -116,14 +122,14 @@ const TestimonialsSection = () => {
           <div className="flex justify-center mt-8 space-x-4">
             <button 
               onClick={prevTestimonial}
-              className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors duration-200"
+              className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg hover:shadow-xl hover:bg-primary-50 transition-all duration-300 border border-primary-100"
               aria-label="Previous testimonial"
             >
               <FaChevronLeft className="text-primary-600" />
             </button>
             <button 
               onClick={nextTestimonial}
-              className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors duration-200"
+              className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg hover:shadow-xl hover:bg-primary-50 transition-all duration-300 border border-primary-100"
               aria-label="Next testimonial"
             >
               <FaChevronRight className="text-primary-600" />

@@ -45,10 +45,16 @@ const FeatureSection = () => {
   ]
 
   return (
-    <section className="py-16 bg-gray-50">
-      <div className="container mx-auto px-4">
+    <section className="relative py-16 bg-gradient-to-br from-primary-50 via-white to-primary-100 overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-10 left-10 w-64 h-64 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-10 right-10 w-80 h-80 bg-primary-300 rounded-full mix-blend-multiply filter blur-xl opacity-15 animate-pulse delay-1000"></div>
+      </div>
+      
+      <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Platform Features</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent mb-4">Platform Features</h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Doc4All offers a comprehensive suite of features designed to make healthcare access simple, efficient, and personalized.
           </p>
@@ -56,10 +62,10 @@ const FeatureSection = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((feature, index) => (
-            <div key={index} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+            <div key={index} className="bg-white/80 backdrop-blur-sm p-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-primary-100">
               <div className="text-center">
                 {feature.icon}
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                <h3 className="text-xl font-semibold mb-2 text-gray-800">{feature.title}</h3>
                 <p className="text-gray-600">{feature.description}</p>
               </div>
             </div>
