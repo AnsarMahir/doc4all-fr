@@ -1,7 +1,8 @@
 // pages/dashboard/PatientReports.jsx
 import { useState, useRef } from 'react'
-import { FaUpload, FaFileAlt, FaDownload, FaTrash, FaSpinner, FaCloudUploadAlt, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa'
+import { FaUpload, FaFileAlt, FaDownload, FaTrash, FaSpinner, FaCloudUploadAlt, FaExclamationCircle, FaCheckCircle, FaShare } from 'react-icons/fa'
 import { usePatientReports } from '../../hooks/usePatientReports'
+import ReportSharingModal from '../../components/ReportSharingModal'
 
 const PatientReports = () => {
   const { 
@@ -10,13 +11,19 @@ const PatientReports = () => {
     uploading, 
     reportError,
     successMessage,
+    completedDoctors,
+    loadingDoctors,
     uploadReport, 
+    shareReport,
+    revokeReport,
     formatFileSize, 
     formatDate,
     clearMessages
   } = usePatientReports()
   
   const [dragActive, setDragActive] = useState(false)
+  const [showSharingModal, setShowSharingModal] = useState(false)
+  const [selectedReport, setSelectedReport] = useState(null)
   const fileInputRef = useRef(null)
 
   const handleFileSelect = (files) => {
@@ -54,6 +61,16 @@ const PatientReports = () => {
     fileInputRef.current?.click()
   }
 
+  const handleShareClick = (report) => {
+    setSelectedReport(report)
+    setShowSharingModal(true)
+  }
+
+  const handleSharingModalClose = () => {
+    setShowSharingModal(false)
+    setSelectedReport(null)
+  }
+
   const getFileIcon = (contentType) => {
     if (contentType?.includes('pdf')) {
       return <FaFileAlt className="h-8 w-8 text-red-500" />
@@ -75,6 +92,17 @@ const PatientReports = () => {
 
   return (
     <div className="space-y-6">
+      {/* Sharing Modal */}
+      <ReportSharingModal
+        isOpen={showSharingModal}
+        onClose={handleSharingModalClose}
+        report={selectedReport}
+        doctors={completedDoctors}
+        onShare={shareReport}
+        onRevoke={revokeReport}
+        loading={uploading || loadingDoctors}
+      />
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Medical Reports</h1>
@@ -213,16 +241,27 @@ const PatientReports = () => {
                   </div>
                   
                   <div className="mt-4 flex items-center justify-between">
-                    <button
-                      className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                      onClick={() => {
-                        // TODO: Implement download functionality
-                        console.log('Download report:', report.id)
-                      }}
-                    >
-                      <FaDownload className="h-3 w-3 mr-1" />
-                      Download
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        onClick={() => {
+                          // TODO: Implement download functionality
+                          console.log('Download report:', report.id)
+                        }}
+                      >
+                        <FaDownload className="h-3 w-3 mr-1" />
+                        Download
+                      </button>
+                      
+                      <button
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        onClick={() => handleShareClick(report)}
+                        disabled={loadingDoctors}
+                      >
+                        <FaShare className="h-3 w-3 mr-1" />
+                        Share
+                      </button>
+                    </div>
                     
                     <button
                       className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"

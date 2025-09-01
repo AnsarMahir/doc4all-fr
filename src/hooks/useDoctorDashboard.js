@@ -32,6 +32,7 @@ export const useDoctorDashboard = () => {
       const bookingsResponse = await request(buildUrl(API_CONFIG.ENDPOINTS.DOCTOR.BOOKINGS))
       const bookings = bookingsResponse || []
       console.log('Bookings response:', bookings)
+      console.log('Sample booking data:', bookings[0])
 
       // Fetch doctor invitations
       const invitationsResponse = await request(buildUrl(API_CONFIG.ENDPOINTS.DOCTOR.INVITATIONS))
@@ -62,6 +63,8 @@ export const useDoctorDashboard = () => {
   }
 
   const calculateStats = (bookings, invitations) => {
+    console.log('Calculating stats with bookings:', bookings.length, 'and invitations:', invitations.length)
+    
     // Get unique patients from bookings
     const uniquePatients = new Set()
     const uniqueDispensaries = new Set()
@@ -73,12 +76,18 @@ export const useDoctorDashboard = () => {
 
     // Process bookings array (only count CONFIRMED and COMPLETED)
     bookings.forEach(booking => {
-      uniquePatients.add(booking.patientName)
-      uniqueDispensaries.add(booking.dispensaryName)
+      console.log('Processing booking:', booking)
+      
+      // Try different possible field names for patient and dispensary
+      const patientName = booking.patientName || booking.patient_name || booking.patientId || 'Unknown Patient'
+      const dispensaryName = booking.dispensaryName || booking.dispensary_name || booking.dispensaryId || 'Unknown Dispensary'
+      
+      uniquePatients.add(patientName)
+      uniqueDispensaries.add(dispensaryName)
       
       // Check if booking is within the next week and has valid status
       if (booking.status === 'CONFIRMED' || booking.status === 'COMPLETED') {
-        const bookingDate = new Date(booking.appointmentDate)
+        const bookingDate = new Date(booking.appointmentDate || booking.appointment_date || booking.booking_date)
         if (bookingDate >= today && bookingDate <= oneWeekFromNow) {
           upcomingAppointments++
         }
@@ -88,27 +97,38 @@ export const useDoctorDashboard = () => {
     // Count pending invitations/schedules
     const pendingInvitations = invitations.filter(inv => inv.status === 'PENDING').length
 
-    return {
+    const stats = {
       totalPatients: uniquePatients.size,
       activeDispensaries: uniqueDispensaries.size,
       weeklyAppointments: upcomingAppointments,
       pendingInvitations
     }
+    
+    console.log('Calculated stats:', stats)
+    return stats
   }
 
   const generateChartData = (bookings) => {
     const appointmentsByDay = getAppointmentsByDay(bookings)
-    const appointmentsByDispensary = getAppointmentsByDispensary(bookings)
+    const appointmentsByDoctor = getAppointmentsByDispensary(bookings) // Rename for compatibility
     const appointmentsByStatus = getAppointmentsByStatus(bookings)
+
+    console.log('Generated chart data:', {
+      appointmentsByDay,
+      appointmentsByDoctor,
+      appointmentsByStatus
+    })
 
     return {
       appointmentsByDay,
-      appointmentsByDispensary,
+      appointmentsByDoctor, // This is what DashboardCharts expects
       appointmentsByStatus
     }
   }
 
   const getAppointmentsByDay = (bookings) => {
+    console.log('Getting appointments by day for', bookings.length, 'bookings')
+    
     const dayCount = {}
     const next7Days = []
     
@@ -124,14 +144,14 @@ export const useDoctorDashboard = () => {
     // Count appointments by day (only CONFIRMED and COMPLETED)
     bookings.forEach(booking => {
       if (booking.status === 'CONFIRMED' || booking.status === 'COMPLETED') {
-        const bookingDay = booking.appointmentDate
-        if (dayCount.hasOwnProperty(bookingDay)) {
-          dayCount[bookingDay]++
+        const bookingDay = booking.appointmentDate || booking.appointment_date || booking.booking_date
+        if (bookingDay && dayCount.hasOwnProperty(bookingDay.split('T')[0])) {
+          dayCount[bookingDay.split('T')[0]]++
         }
       }
     })
 
-    return {
+    const result = {
       labels: next7Days.map(day => {
         const date = new Date(day)
         const today = new Date().toDateString()
@@ -146,15 +166,20 @@ export const useDoctorDashboard = () => {
         tension: 0.4
       }]
     }
+    
+    console.log('Appointments by day result:', result)
+    return result
   }
 
   const getAppointmentsByDispensary = (bookings) => {
+    console.log('Getting appointments by dispensary for', bookings.length, 'bookings')
+    
     const dispensaryCount = {}
 
     // Count appointments by dispensary (only CONFIRMED and COMPLETED)
     bookings.forEach(booking => {
       if (booking.status === 'CONFIRMED' || booking.status === 'COMPLETED') {
-        const dispensaryName = booking.dispensaryName
+        const dispensaryName = booking.dispensaryName || booking.dispensary_name || 'Unknown Dispensary'
         dispensaryCount[dispensaryName] = (dispensaryCount[dispensaryName] || 0) + 1
       }
     })
@@ -163,7 +188,7 @@ export const useDoctorDashboard = () => {
       .sort(([,a], [,b]) => b - a)
       .slice(0, 5) // Top 5 dispensaries
 
-    return {
+    const result = {
       labels: sortedDispensaries.map(([name]) => name),
       datasets: [{
         label: 'Confirmed Appointments',
@@ -177,9 +202,14 @@ export const useDoctorDashboard = () => {
         ]
       }]
     }
+    
+    console.log('Appointments by dispensary result:', result)
+    return result
   }
 
   const getAppointmentsByStatus = (bookings) => {
+    console.log('Getting appointments by status for', bookings.length, 'bookings')
+    
     // Chart for appointment status distribution
     const statusCount = {
       'PENDING': 0,
@@ -195,7 +225,7 @@ export const useDoctorDashboard = () => {
       }
     })
 
-    return {
+    const result = {
       labels: Object.keys(statusCount),
       datasets: [{
         label: 'Appointments',
@@ -208,6 +238,9 @@ export const useDoctorDashboard = () => {
         ]
       }]
     }
+    
+    console.log('Appointments by status result:', result)
+    return result
   }
 
   const getRecentBookings = (bookings, limit) => {

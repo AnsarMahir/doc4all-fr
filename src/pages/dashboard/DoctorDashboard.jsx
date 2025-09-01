@@ -45,6 +45,13 @@ const DoctorDashboard = () => {
       badge: stats.pendingInvitations > 0 ? stats.pendingInvitations.toString() : null
     },
     {
+      title: 'Shared Reports',
+      description: 'View patient medical reports',
+      icon: FaClipboardList,
+      link: '/dashboard/doctor/shared-reports',
+      color: 'bg-indigo-500'
+    },
+    {
       title: 'Practice Overview',
       description: 'View dispensaries & patient appointments',
       icon: FaStethoscope,
@@ -57,13 +64,6 @@ const DoctorDashboard = () => {
       icon: FaChartLine,
       link: '/dashboard/doctor/analytics',
       color: 'bg-purple-500'
-    },
-    {
-      title: 'Prescriptions',
-      description: 'Create and manage prescriptions',
-      icon: FaClipboardList,
-      link: '/dashboard/doctor/prescriptions',
-      color: 'bg-orange-500'
     }
   ]
 

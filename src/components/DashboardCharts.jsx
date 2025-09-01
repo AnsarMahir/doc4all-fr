@@ -30,12 +30,8 @@ const DashboardCharts = ({ chartData }) => {
   console.log('DashboardCharts received chartData:', chartData)
   
   // Safety check to ensure chartData exists and has the required properties
-  if (!chartData || !chartData.appointmentsByDoctor || !chartData.appointmentsByStatus) {
-    console.log('Chart data validation failed:', {
-      hasChartData: !!chartData,
-      hasAppointmentsByDoctor: !!chartData?.appointmentsByDoctor,
-      hasAppointmentsByStatus: !!chartData?.appointmentsByStatus
-    })
+  if (!chartData) {
+    console.log('No chartData provided')
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {[1, 2].map((i) => (
@@ -49,6 +45,16 @@ const DashboardCharts = ({ chartData }) => {
       </div>
     )
   }
+
+  console.log('Chart data validation:', {
+    hasChartData: !!chartData,
+    hasAppointmentsByDay: !!chartData?.appointmentsByDay,
+    hasAppointmentsByDoctor: !!chartData?.appointmentsByDoctor,
+    hasAppointmentsByStatus: !!chartData?.appointmentsByStatus,
+    appointmentsByDayLabels: chartData?.appointmentsByDay?.labels,
+    appointmentsByDoctorLabels: chartData?.appointmentsByDoctor?.labels,
+    appointmentsByStatusLabels: chartData?.appointmentsByStatus?.labels
+  })
   const lineChartOptions = {
     responsive: true,
     plugins: {
@@ -78,7 +84,7 @@ const DashboardCharts = ({ chartData }) => {
       },
       title: {
         display: true,
-        text: 'Your Most Visited Doctors'
+        text: 'Top Dispensaries by Appointments'
       }
     },
     scales: {

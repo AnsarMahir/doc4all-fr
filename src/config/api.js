@@ -29,7 +29,9 @@ export const API_CONFIG = {
       SCHEDULES: '/doctor/schedules',
       UPDATE_SCHEDULE_STATUS: (id) => `/doctor/remove-schedule/${id}`,
       BOOKINGS: '/doctor/bookings',
-      REVIEWS: (doctorId) => `/doctor/${doctorId}/reviews`
+      REVIEWS: (doctorId) => `/doctor/${doctorId}/reviews`,
+      SHARED_REPORTS: '/doctor/shared-reports',
+      DOWNLOAD_REPORT: (reportId) => `/doctor/reports/${reportId}/download`
     },
     // Patient endpoints
     PATIENT: {
@@ -43,7 +45,9 @@ export const API_CONFIG = {
       DISPENSARY_REVIEW: '/patient/reviews/dispensary',
       CHECK_REVIEWABLE: (bookingId) => `/patient/${bookingId}/is-reviewable`,
       REPORTS: '/patient/reports',
-      UPLOAD_REPORT: '/patient/reports'
+      UPLOAD_REPORT: '/patient/reports',
+      SHARE_REPORT: (reportId) => `/patient/${reportId}/share`,
+      REVOKE_REPORT: (reportId) => `/patient/${reportId}/revoke`
     },
     // Payment endpoints
     PAYMENTS: {

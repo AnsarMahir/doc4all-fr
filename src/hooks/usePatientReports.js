@@ -12,6 +12,8 @@ export const usePatientReports = () => {
   const [uploading, setUploading] = useState(false)
   const [reportError, setReportError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
+  const [completedDoctors, setCompletedDoctors] = useState([])
+  const [loadingDoctors, setLoadingDoctors] = useState(false)
 
   const fetchReports = async () => {
     try {
@@ -28,7 +30,7 @@ export const usePatientReports = () => {
       
       if (err.message) {
         if (err.message.includes('Failed to fetch')) {
-          errorMessage = 'Cannot connect to server. Please check if the backend is running.'
+          errorMessage = 'Cannot connect to server. Please check if the backend is running on localhost:8005.'
         } else if (err.message.includes('NetworkError')) {
           errorMessage = 'Network error. Please check your connection.'
         } else if (err.message.includes('Session expired')) {
@@ -161,8 +163,131 @@ export const usePatientReports = () => {
     })
   }
 
+  // Fetch doctors from completed bookings
+  const fetchCompletedDoctors = async () => {
+    try {
+      setLoadingDoctors(true)
+      console.log('Fetching completed bookings to get doctors...')
+      
+      const data = await get(API_CONFIG.ENDPOINTS.PATIENT.BOOKINGS)
+      console.log('Bookings data received:', data)
+      
+      // Filter completed bookings and extract unique doctors
+      const completedBookings = (data || []).filter(
+        booking => booking.status === 'COMPLETED' && booking.paymentStatus === 'PAID'
+      )
+      
+      // Extract unique doctors
+      const doctorsMap = new Map()
+      completedBookings.forEach(booking => {
+        if (booking.doctor && booking.doctor.id) {
+          doctorsMap.set(booking.doctor.id, {
+            id: booking.doctor.id,
+            name: booking.doctor.name,
+            email: booking.doctor.email,
+            specialities: booking.doctor.specialities,
+            experience: booking.doctor.experience
+          })
+        }
+      })
+      
+      const uniqueDoctors = Array.from(doctorsMap.values())
+      console.log('Completed doctors:', uniqueDoctors)
+      setCompletedDoctors(uniqueDoctors)
+      
+    } catch (err) {
+      console.error('Failed to fetch completed doctors:', err)
+      setReportError('Failed to load doctors for sharing')
+    } finally {
+      setLoadingDoctors(false)
+    }
+  }
+
+  // Share report with selected doctors
+  const shareReport = async (reportId, doctorIds) => {
+    if (!reportId || !doctorIds || doctorIds.length === 0) {
+      setReportError('Please select at least one doctor to share with')
+      return false
+    }
+
+    try {
+      console.log('Sharing report:', reportId, 'with doctors:', doctorIds)
+      
+      const fullUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT.SHARE_REPORT(reportId)}`
+      const response = await apiCall(fullUrl, {
+        method: 'POST',
+        body: JSON.stringify({ doctorIds }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to share report'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorData.error || `Share failed with status ${response.status}`
+        } catch (parseError) {
+          errorMessage = `Share failed with status ${response.status}: ${response.statusText}`
+        }
+        throw new Error(errorMessage)
+      }
+
+      setSuccessMessage('Report shared successfully!')
+      await fetchReports() // Refresh reports to update sharing status
+      return true
+      
+    } catch (err) {
+      console.error('Failed to share report:', err)
+      setReportError(err.message || 'Failed to share report')
+      return false
+    }
+  }
+
+  // Revoke report access from selected doctors
+  const revokeReport = async (reportId, doctorIds) => {
+    if (!reportId || !doctorIds || doctorIds.length === 0) {
+      setReportError('Please select at least one doctor to revoke access from')
+      return false
+    }
+
+    try {
+      console.log('Revoking report:', reportId, 'from doctors:', doctorIds)
+      
+      const fullUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PATIENT.REVOKE_REPORT(reportId)}`
+      const response = await apiCall(fullUrl, {
+        method: 'POST',
+        body: JSON.stringify({ doctorIds }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to revoke report access'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorData.error || `Revoke failed with status ${response.status}`
+        } catch (parseError) {
+          errorMessage = `Revoke failed with status ${response.status}: ${response.statusText}`
+        }
+        throw new Error(errorMessage)
+      }
+
+      setSuccessMessage('Report access revoked successfully!')
+      await fetchReports() // Refresh reports to update sharing status
+      return true
+      
+    } catch (err) {
+      console.error('Failed to revoke report access:', err)
+      setReportError(err.message || 'Failed to revoke report access')
+      return false
+    }
+  }
+
   useEffect(() => {
     fetchReports()
+    fetchCompletedDoctors()
   }, [])
 
   return {
@@ -172,8 +297,13 @@ export const usePatientReports = () => {
     uploading,
     reportError,
     successMessage,
+    completedDoctors,
+    loadingDoctors,
     uploadReport,
     fetchReports,
+    fetchCompletedDoctors,
+    shareReport,
+    revokeReport,
     formatFileSize,
     formatDate,
     clearMessages: () => {

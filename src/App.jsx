@@ -23,6 +23,7 @@ import DoctorInvitationsPage from './pages/dashboard/DoctorInvitationsPage'
 import PatientAppointments from './pages/dashboard/PatientAppointments'
 import PatientReviews from './pages/dashboard/PatientReviews'
 import PatientReports from './pages/dashboard/PatientReports'
+import DoctorSharedReports from './pages/dashboard/DoctorSharedReports'
 import DispensaryBookings from './pages/dashboard/DispensaryBookings'
 import DoctorBookings from './pages/dashboard/DoctorBookings'
 import DispensaryLocationPage from './pages/DispensaryLocationPage'
@@ -147,6 +148,7 @@ function App() {
                             <Routes>
                               <Route path="/invitations" element={<DoctorInvitationsPage />} />
                               <Route path="/bookings" element={<DoctorBookings />} />
+                              <Route path="/shared-reports" element={<DoctorSharedReports />} />
                               <Route path="/dispensaries" element={<div>My Dispensaries (Coming Soon)</div>} />
                               <Route path="/patients" element={<div>My Patients (Coming Soon)</div>} />
                               <Route path="/prescriptions" element={<div>Prescriptions (Coming Soon)</div>} />
