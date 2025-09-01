@@ -9,8 +9,8 @@ const HowItWorksSection = () => {
     },
     {
       icon: <FaSearch className="text-white text-2xl" />,
-      title: "Search by Symptoms",
-      description: "Enter your symptoms to find doctors specialized in treating your condition."
+      title: "Search by Nearby Dispensaries",
+      description: "Select your preferred medication to find doctors specialized in treating your condition."
     },
     {
       icon: <FaCalendarCheck className="text-white text-2xl" />,

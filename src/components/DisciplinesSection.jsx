@@ -1,4 +1,4 @@
-import { FaLeaf, FaYinYang, FaHospital } from 'react-icons/fa'
+import { FaLeaf, FaYinYang, FaHospital, FaMoon } from 'react-icons/fa'
 
 const DisciplinesSection = () => {
   const disciplines = [
@@ -13,6 +13,12 @@ const DisciplinesSection = () => {
       title: "Homeopathic Treatment",
       description: "Find homeopathic doctors who treat conditions using highly diluted natural substances that trigger the body's natural healing system.",
       benefits: ["Non-invasive treatments", "Minimal side effects", "Treats root causes", "Personalized remedies"]
+    },
+    {
+      icon: <FaMoon className="text-purple-600 text-5xl mb-4" />,
+      title: "Unani Medicine",
+      description: "Access Unani practitioners who use traditional Greco-Arabic medicine principles, focusing on natural healing through herbal medicines, diet therapy, and lifestyle modifications.",
+      benefits: ["Time-tested remedies", "Natural detoxification", "Constitutional treatment", "Preventive healthcare"]
     },
     {
       icon: <FaHospital className="text-red-600 text-5xl mb-4" />,
@@ -38,7 +44,7 @@ const DisciplinesSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {disciplines.map((discipline, index) => (
             <div key={index} className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border-t-4 border-primary-500">
               <div className="text-center">
