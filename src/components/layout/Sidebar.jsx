@@ -12,7 +12,8 @@ import {
   FaUsers,
   FaClipboardList,
   FaCog,
-  FaChartBar
+  FaChartBar,
+  FaStar
 } from 'react-icons/fa'
 
 const Sidebar = ({ isOpen, onClose, userRole }) => {
@@ -40,7 +41,8 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
         { path: '/dashboard/patient/search-dispensaries', label: 'Search Dispensaries', icon: FaSearch },
         { path: '/dashboard/patient/browse-dispensaries', label: 'Browse by Location', icon: FaMapMarkerAlt },
         { path: '/dashboard/patient/my-prescriptions', label: 'My Prescriptions', icon: FaClipboardList },
-        { path: '/dashboard/patient/appointments', label: 'Appointments', icon: FaUserMd }
+        { path: '/dashboard/patient/appointments', label: 'Appointments', icon: FaUserMd },
+        { path: '/dashboard/patient/reviews', label: 'Reviews & Ratings', icon: FaStar }
       ],
       DISPENSARY: [
         ...commonItems,
