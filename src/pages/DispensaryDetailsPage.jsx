@@ -120,11 +120,15 @@ const DispensaryDetailsPage = () => {
       setLoadingSlots(true)
       const response = await get(buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.SCHEDULE_SLOTS(scheduleId, selectedDate)))
       
-      // Transform the API response to include display time
-      const slotsWithDisplay = (response || []).map(slot => ({
-        ...slot,
-        displayTime: `${formatTime(slot.start)} - ${formatTime(slot.end)}`
-      }))
+      // Transform the API response to include display time and check if slot is in the past
+      const slotsWithDisplay = (response || []).map(slot => {
+        const isSlotInPast = isSlotPast(slot.start, selectedDate)
+        return {
+          ...slot,
+          displayTime: `${formatTime(slot.start)} - ${formatTime(slot.end)}`,
+          available: slot.available && !isSlotInPast // Disable if originally unavailable OR if in the past
+        }
+      })
       
       setSlots(slotsWithDisplay)
       setSelectedSchedule(scheduleId)
@@ -216,6 +220,25 @@ const DispensaryDetailsPage = () => {
   const isDoctorAvailableOnSelectedDate = (doctorDay, selectedDate) => {
     const selectedDayOfWeek = getSelectedDateDayOfWeek(selectedDate)
     return doctorDay === selectedDayOfWeek
+  }
+
+  // Helper function to check if a slot time has passed
+  const isSlotPast = (slotStartTime, appointmentDate) => {
+    const now = new Date()
+    const slotDateTime = new Date(`${appointmentDate}T${slotStartTime}`)
+    return slotDateTime <= now
+  }
+
+  // Helper function to check if any future booking is possible
+  const getNextAvailableBookingDate = () => {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    return tomorrow.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
   }
 
   // Helper functions for reviews
@@ -517,7 +540,7 @@ const DispensaryDetailsPage = () => {
             {/* Doctors and Booking Section */}
             {dispensary.approvedDoctors && dispensary.approvedDoctors.length > 0 && (
               <div className="mt-12">
-                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-semibold">Available Doctors & Booking</h2>
                   <div className="flex items-center">
                     <FaCalendarAlt className="text-gray-500 mr-2" />
@@ -526,9 +549,26 @@ const DispensaryDetailsPage = () => {
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      max={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                      max={new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                       className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
+                  </div>
+                </div>
+
+                {/* Booking Information */}
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <FaClock className="text-blue-600 mt-1" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800 mb-1">Booking Information</h3>
+                      <div className="text-sm text-blue-700">
+                        <p>• You can book appointments up to 5 days in advance</p>
+                        <p>• Past time slots are automatically disabled</p>
+                        <p>• Each doctor has specific available days and hours</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -605,27 +645,46 @@ const DispensaryDetailsPage = () => {
                         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                           <h4 className="font-medium mb-3">Available Slots for {selectedDate}</h4>
                           {slots.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {slots.map((slot, index) => (
-                                <button
-                                  key={index}
-                                  className={`p-3 text-sm border rounded-md transition-colors text-center ${
-                                    slot.available 
-                                      ? 'border-primary-300 hover:bg-primary-100 cursor-pointer' 
-                                      : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                                  } ${
-                                    bookingLoading ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
-                                  disabled={!slot.available || bookingLoading}
-                                  onClick={() => handleSlotClick(slot, doctor.scheduleId)}
-                                >
-                                  <span className="block">{slot.displayTime}</span>
-                                  {!slot.available && (
-                                    <span className="text-xs text-gray-400 block mt-1">Not Available</span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
+                            <>
+                              {/* Check if all slots are unavailable due to past time */}
+                              {slots.every(slot => !slot.available) && new Date(selectedDate).toDateString() === new Date().toDateString() && (
+                                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                  <div className="flex items-center text-yellow-800">
+                                    <FaClock className="mr-2 text-yellow-600" />
+                                    <span className="text-sm font-medium">
+                                      All slots for today have passed. You can start booking from {getNextAvailableBookingDate()}.
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {slots.map((slot, index) => {
+                                  const isSlotInPast = isSlotPast(slot.start, selectedDate)
+                                  return (
+                                    <button
+                                      key={index}
+                                      className={`p-3 text-sm border rounded-md transition-colors text-center ${
+                                        slot.available 
+                                          ? 'border-primary-300 hover:bg-primary-100 cursor-pointer' 
+                                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                                      } ${
+                                        bookingLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                      }`}
+                                      disabled={!slot.available || bookingLoading}
+                                      onClick={() => handleSlotClick(slot, doctor.scheduleId)}
+                                    >
+                                      <span className="block">{slot.displayTime}</span>
+                                      {!slot.available && (
+                                        <span className="text-xs text-gray-400 block mt-1">
+                                          {isSlotInPast ? 'Time Passed' : 'Not Available'}
+                                        </span>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </>
                           ) : (
                             <p className="text-gray-500 text-sm">No available slots for this date.</p>
                           )}
