@@ -57,7 +57,7 @@ const DashboardCharts = ({ chartData }) => {
       },
       title: {
         display: true,
-        text: 'Confirmed Appointments (Next 7 Days)'
+        text: 'Appointment Trend (Last 7 Days)'
       }
     },
     scales: {
@@ -78,7 +78,7 @@ const DashboardCharts = ({ chartData }) => {
       },
       title: {
         display: true,
-        text: 'Appointments by Doctor'
+        text: 'Your Most Visited Doctors'
       }
     },
     scales: {
@@ -99,33 +99,33 @@ const DashboardCharts = ({ chartData }) => {
       },
       title: {
         display: true,
-        text: 'Appointment Status Distribution'
+        text: 'Appointment Status Overview'
       }
     }
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      {/* Show line chart only if appointmentsByDay exists */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      {/* Line Chart - Appointment Trend */}
       {chartData.appointmentsByDay && (
         <div className="bg-white rounded-lg shadow p-6">
           {chartData.appointmentsByDay?.labels ? (
             <Line data={chartData.appointmentsByDay} options={lineChartOptions} />
           ) : (
             <div className="h-64 flex items-center justify-center text-gray-500">
-              No appointment data available
+              No appointment trend data
             </div>
           )}
         </div>
       )}
 
-      {/* Bar Chart - Confirmed Appointments by Dispensary */}
+      {/* Bar Chart - Top Doctors */}
       <div className="bg-white rounded-lg shadow p-6">
-        {chartData.appointmentsByDoctor?.labels ? (
+        {chartData.appointmentsByDoctor?.labels && chartData.appointmentsByDoctor.labels.length > 0 ? (
           <Bar data={chartData.appointmentsByDoctor} options={barChartOptions} />
         ) : (
           <div className="h-64 flex items-center justify-center text-gray-500">
-            No doctor booking data available
+            No doctor data available
           </div>
         )}
       </div>

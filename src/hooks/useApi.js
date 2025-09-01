@@ -1,5 +1,6 @@
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useState, useCallback } from 'react'
+import { API_CONFIG } from '../config/api'
 
 export const useApi = () => {
   const { apiCall } = useAuth()
@@ -7,11 +8,16 @@ export const useApi = () => {
   const [error, setError] = useState(null)
 
   const request = useCallback(async (url, options = {}) => {
+    // Construct full URL if it's a relative path
+    const fullUrl = url.startsWith('http') ? url : `${API_CONFIG.BASE_URL}${url}`
+    console.log('useApi.request called:', { url, fullUrl, options })
     setLoading(true)
     setError(null)
     
     try {
-      const response = await apiCall(url, options)
+      console.log('Making API call via apiCall function...')
+      const response = await apiCall(fullUrl, options)
+      console.log('API response received:', response)
       
       if (!response.ok) {
         let errorMessage = 'Request failed'
@@ -64,7 +70,10 @@ export const useApi = () => {
     }
   }, [apiCall])
 
-  const get = useCallback((url) => request(url), [request])
+  const get = useCallback((url) => {
+    console.log('useApi.get called with URL:', url)
+    return request(url)
+  }, [request])
   const post = useCallback((url, data) => request(url, { method: 'POST', body: JSON.stringify(data) }), [request])
   const put = useCallback((url, data) => request(url, { method: 'PUT', body: JSON.stringify(data) }), [request])
   const patch = useCallback((url, data) => request(url, { method: 'PATCH', body: JSON.stringify(data) }), [request])
