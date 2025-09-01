@@ -1,7 +1,7 @@
 // Header.jsx - Enhanced version with better styling
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FaBars, FaTimes, FaSearch, FaList, FaUser, FaSignOutAlt } from 'react-icons/fa'
+import { FaBars, FaTimes, FaUser, FaSignOutAlt } from 'react-icons/fa'
 import { useAuth } from '../contexts/AuthContext'
 
 const Header = ({ openAuthModal }) => {
@@ -11,11 +11,7 @@ const Header = ({ openAuthModal }) => {
   const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuth()
 
-  const navLinks = [
-    { path: '/', label: 'Home' },
-    { path: '/browse-dispensaries', label: 'Browse', icon: FaList },
-    { path: '/find-dispensaries', label: 'Find Nearby', icon: FaSearch }
-  ]
+  const navLinks = []
 
   const handleMobileMenuClick = () => {
     setIsMenuOpen(false)
