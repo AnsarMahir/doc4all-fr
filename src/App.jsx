@@ -22,6 +22,7 @@ import InviteDoctorsPage from './pages/dashboard/InviteDoctorsPage'
 import DoctorInvitationsPage from './pages/dashboard/DoctorInvitationsPage'
 import PatientAppointments from './pages/dashboard/PatientAppointments'
 import PatientReviews from './pages/dashboard/PatientReviews'
+import PatientReports from './pages/dashboard/PatientReports'
 import DispensaryBookings from './pages/dashboard/DispensaryBookings'
 import DoctorBookings from './pages/dashboard/DoctorBookings'
 import DispensaryLocationPage from './pages/DispensaryLocationPage'
@@ -119,6 +120,7 @@ function App() {
                               <Route path="/browse-dispensaries" element={<BrowseDispensariesPage />} />
                               <Route path="/my-prescriptions" element={<div>My Prescriptions (Coming Soon)</div>} />
                               <Route path="/appointments" element={<PatientAppointments />} />
+                              <Route path="/reports" element={<PatientReports />} />
                               <Route path="/reviews" element={<PatientReviews />} />
                             </Routes>
                           </ProtectedRoute>

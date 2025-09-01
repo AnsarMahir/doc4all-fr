@@ -41,7 +41,9 @@ export const API_CONFIG = {
       CANCEL_BOOKING: (bookingId) => `/patient/${bookingId}/cancel`,
       DOCTOR_REVIEW: '/patient/reviews/doctor',
       DISPENSARY_REVIEW: '/patient/reviews/dispensary',
-      CHECK_REVIEWABLE: (bookingId) => `/patient/${bookingId}/is-reviewable`
+      CHECK_REVIEWABLE: (bookingId) => `/patient/${bookingId}/is-reviewable`,
+      REPORTS: '/patient/reports',
+      UPLOAD_REPORT: '/patient/reports'
     },
     // Payment endpoints
     PAYMENTS: {

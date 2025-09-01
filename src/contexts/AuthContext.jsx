@@ -209,9 +209,13 @@ export const AuthProvider = ({ children }) => {
     const config = {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
         ...options.headers,
       }
+    }
+
+    // Only set Content-Type if body is not FormData (for file uploads)
+    if (!(options.body instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json'
     }
 
     // Add auth token if available
