@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaLeaf, FaYinYang, FaHospital, FaMosque, FaArrowLeft, FaStar, FaClock, FaCalendarAlt, FaUserMd, FaGraduationCap, FaStethoscope, FaUser, FaUsers, FaUserShield, FaAccessibleIcon, FaQuoteLeft, FaChevronLeft, FaChevronRight } from 'react-icons/fa'
+import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaLeaf, FaYinYang, FaHospital, FaMosque, FaArrowLeft, FaStar, FaClock, FaCalendarAlt, FaUserMd, FaGraduationCap, FaStethoscope, FaUser, FaUsers, FaUserShield, FaAccessibleIcon, FaQuoteLeft, FaChevronLeft, FaChevronRight, FaEye, FaEyeSlash } from 'react-icons/fa'
 import { API_CONFIG, buildUrl } from '../config/api'
 import { useApi } from '../hooks/useApi'
 import { useAuth } from '../contexts/AuthContext'
@@ -56,6 +56,10 @@ const DispensaryDetailsPage = () => {
   const [currentReviewPage, setCurrentReviewPage] = useState(0)
   const [totalReviewPages, setTotalReviewPages] = useState(0)
   const [reviewsTotal, setReviewsTotal] = useState(0)
+  
+  // Doctor reviews state
+  const [doctorReviews, setDoctorReviews] = useState({}) // { doctorId: { reviews: [], loading: false, error: null, page: 0, totalPages: 0, total: 0 } }
+  const [expandedDoctorReviews, setExpandedDoctorReviews] = useState({}) // { doctorId: boolean }
 
   // Clear selected schedule and slots when date changes
   useEffect(() => {
@@ -273,6 +277,70 @@ const DispensaryDetailsPage = () => {
   const handleReviewPageChange = (newPage) => {
     if (newPage >= 0 && newPage < totalReviewPages) {
       fetchReviews(newPage)
+    }
+  }
+
+  // Doctor reviews functions
+  const fetchDoctorReviews = async (doctorId, page = 0) => {
+    try {
+      setDoctorReviews(prev => ({
+        ...prev,
+        [doctorId]: {
+          ...prev[doctorId],
+          loading: true,
+          error: null
+        }
+      }))
+
+      const url = buildUrl(API_CONFIG.ENDPOINTS.DOCTOR.REVIEWS(doctorId))
+      const response = await get(`${url}?page=${page}&size=3`) // 3 reviews per page for doctors
+      
+      if (response && response.content) {
+        setDoctorReviews(prev => ({
+          ...prev,
+          [doctorId]: {
+            reviews: response.content,
+            loading: false,
+            error: null,
+            page: response.number,
+            totalPages: response.totalPages,
+            total: response.totalElements
+          }
+        }))
+      }
+    } catch (err) {
+      setDoctorReviews(prev => ({
+        ...prev,
+        [doctorId]: {
+          ...prev[doctorId],
+          loading: false,
+          error: 'Failed to fetch doctor reviews'
+        }
+      }))
+      console.error('Error fetching doctor reviews:', err)
+    }
+  }
+
+  const toggleDoctorReviews = (doctorId) => {
+    const isExpanded = expandedDoctorReviews[doctorId]
+    
+    if (!isExpanded) {
+      // Expanding - fetch reviews if not already loaded
+      if (!doctorReviews[doctorId]) {
+        fetchDoctorReviews(doctorId, 0)
+      }
+    }
+    
+    setExpandedDoctorReviews(prev => ({
+      ...prev,
+      [doctorId]: !isExpanded
+    }))
+  }
+
+  const handleDoctorReviewPageChange = (doctorId, newPage) => {
+    const doctorReviewData = doctorReviews[doctorId]
+    if (doctorReviewData && newPage >= 0 && newPage < doctorReviewData.totalPages) {
+      fetchDoctorReviews(doctorId, newPage)
     }
   }
 
@@ -563,6 +631,134 @@ const DispensaryDetailsPage = () => {
                           )}
                         </div>
                       )}
+
+                      {/* Doctor Reviews Section */}
+                      <div className="mt-6 border-t pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <button
+                            onClick={() => toggleDoctorReviews(doctor.doctorId)}
+                            className="flex items-center text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                          >
+                            {expandedDoctorReviews[doctor.doctorId] ? (
+                              <>
+                                <FaEyeSlash className="mr-2" />
+                                Hide Doctor Reviews
+                              </>
+                            ) : (
+                              <>
+                                <FaEye className="mr-2" />
+                                View Doctor Reviews
+                              </>
+                            )}
+                            {doctorReviews[doctor.doctorId]?.total > 0 && (
+                              <span className="ml-2 bg-primary-100 text-primary-700 px-2 py-1 rounded-full text-xs">
+                                {doctorReviews[doctor.doctorId].total}
+                              </span>
+                            )}
+                          </button>
+                        </div>
+
+                        {expandedDoctorReviews[doctor.doctorId] && (
+                          <div className="mt-4">
+                            {doctorReviews[doctor.doctorId]?.loading ? (
+                              <div className="flex justify-center items-center py-6">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                                <span className="ml-3 text-gray-600 text-sm">Loading doctor reviews...</span>
+                              </div>
+                            ) : doctorReviews[doctor.doctorId]?.error ? (
+                              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                                <p className="text-red-600 text-sm">{doctorReviews[doctor.doctorId].error}</p>
+                                <button 
+                                  onClick={() => fetchDoctorReviews(doctor.doctorId, 0)}
+                                  className="mt-2 text-red-600 hover:text-red-700 underline text-sm"
+                                >
+                                  Try again
+                                </button>
+                              </div>
+                            ) : !doctorReviews[doctor.doctorId]?.reviews || doctorReviews[doctor.doctorId].reviews.length === 0 ? (
+                              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                                <FaStar className="text-gray-300 text-2xl mx-auto mb-2" />
+                                <p className="text-gray-600 text-sm">No reviews yet for this doctor</p>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="space-y-4">
+                                  {doctorReviews[doctor.doctorId].reviews.map((review) => (
+                                    <div key={review.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                      <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center">
+                                          <div className="bg-blue-100 rounded-full p-2 mr-3">
+                                            <FaUser className="text-blue-600 text-sm" />
+                                          </div>
+                                          <div>
+                                            <h5 className="font-medium text-gray-900 text-sm">
+                                              {review.anonymous ? 'Anonymous Patient' : review.patientName || 'Patient'}
+                                            </h5>
+                                            <p className="text-gray-500 text-xs">{formatDate(review.createdAt)}</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center">
+                                          <div className="flex items-center mr-1">
+                                            {renderStars(review.rating, 'text-sm')}
+                                          </div>
+                                          <span className="text-sm font-semibold text-gray-700">
+                                            {review.rating}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {review.comment && (
+                                        <div className="bg-white border-l-4 border-blue-400 p-3 rounded-r-lg">
+                                          <p className="text-gray-700 text-sm italic leading-relaxed">"{review.comment}"</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Doctor Reviews Pagination */}
+                                {doctorReviews[doctor.doctorId].totalPages > 1 && (
+                                  <div className="flex items-center justify-center mt-4 space-x-2">
+                                    <button
+                                      onClick={() => handleDoctorReviewPageChange(doctor.doctorId, doctorReviews[doctor.doctorId].page - 1)}
+                                      disabled={doctorReviews[doctor.doctorId].page === 0}
+                                      className="flex items-center px-3 py-1 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      <FaChevronLeft className="mr-1 text-xs" />
+                                      Prev
+                                    </button>
+
+                                    <div className="flex items-center space-x-1">
+                                      {Array.from({ length: doctorReviews[doctor.doctorId].totalPages }, (_, index) => (
+                                        <button
+                                          key={index}
+                                          onClick={() => handleDoctorReviewPageChange(doctor.doctorId, index)}
+                                          className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                            index === doctorReviews[doctor.doctorId].page
+                                              ? 'bg-primary-600 text-white'
+                                              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                          }`}
+                                        >
+                                          {index + 1}
+                                        </button>
+                                      ))}
+                                    </div>
+
+                                    <button
+                                      onClick={() => handleDoctorReviewPageChange(doctor.doctorId, doctorReviews[doctor.doctorId].page + 1)}
+                                      disabled={doctorReviews[doctor.doctorId].page === doctorReviews[doctor.doctorId].totalPages - 1}
+                                      className="flex items-center px-3 py-1 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      Next
+                                      <FaChevronRight className="ml-1 text-xs" />
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
