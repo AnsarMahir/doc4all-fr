@@ -38,9 +38,8 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
       PATIENT: [
         ...commonItems,
         { path: '/dashboard/profile', label: 'Profile', icon: FaUser },
+        { path: '/dashboard/patient/find-dispensaries', label: 'Find Dispensaries', icon: FaMapMarkerAlt },
         { path: '/dashboard/patient/search-dispensaries', label: 'Search Dispensaries', icon: FaSearch },
-        { path: '/dashboard/patient/browse-dispensaries', label: 'Browse by Location', icon: FaMapMarkerAlt },
-        { path: '/dashboard/patient/my-prescriptions', label: 'My Prescriptions', icon: FaClipboardList },
         { path: '/dashboard/patient/appointments', label: 'Appointments', icon: FaUserMd },
         { path: '/dashboard/patient/reviews', label: 'Reviews & Ratings', icon: FaStar }
       ],

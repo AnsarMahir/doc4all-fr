@@ -1,5 +1,5 @@
 // pages/dashboard/PatientDashboard.jsx
-import { FaSearch, FaMapMarkerAlt, FaClipboardList, FaUserMd } from 'react-icons/fa'
+import { FaSearch, FaMapMarkerAlt, FaUserMd, FaStar } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 
 const PatientDashboard = () => {
@@ -19,25 +19,18 @@ const PatientDashboard = () => {
       color: 'bg-blue-500'
     },
     {
-      title: 'Browse by Location',
-      description: 'Explore dispensaries by area',
-      icon: FaMapMarkerAlt,
-      link: '/dashboard/patient/browse-dispensaries',
-      color: 'bg-indigo-500'
-    },
-    {
-      title: 'My Prescriptions',
-      description: 'View your prescriptions',
-      icon: FaClipboardList,
-      link: '/dashboard/patient/my-prescriptions',
-      color: 'bg-purple-500'
-    },
-    {
       title: 'Appointments',
       description: 'Manage your appointments',
       icon: FaUserMd,
       link: '/dashboard/patient/appointments',
       color: 'bg-orange-500'
+    },
+    {
+      title: 'Reviews & Ratings',
+      description: 'Rate doctors and dispensaries',
+      icon: FaStar,
+      link: '/dashboard/patient/reviews',
+      color: 'bg-yellow-500'
     }
   ]
 
@@ -49,7 +42,7 @@ const PatientDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {quickActions.map((action) => {
           const Icon = action.icon
           return (

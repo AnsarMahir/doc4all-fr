@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaLeaf, FaYinYang, FaHospital, FaMosque, FaArrowLeft, FaStar, FaClock, FaCalendarAlt, FaUserMd, FaGraduationCap, FaStethoscope } from 'react-icons/fa'
+import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaLeaf, FaYinYang, FaHospital, FaMosque, FaArrowLeft, FaStar, FaClock, FaCalendarAlt, FaUserMd, FaGraduationCap, FaStethoscope, FaUser, FaUsers, FaUserShield, FaAccessibleIcon, FaQuoteLeft, FaChevronLeft, FaChevronRight } from 'react-icons/fa'
 import { API_CONFIG, buildUrl } from '../config/api'
 import { useApi } from '../hooks/useApi'
 import { useAuth } from '../contexts/AuthContext'
@@ -48,6 +48,14 @@ const DispensaryDetailsPage = () => {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [selectedScheduleForBooking, setSelectedScheduleForBooking] = useState(null)
+  
+  // Reviews state
+  const [reviews, setReviews] = useState([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [reviewsError, setReviewsError] = useState(null)
+  const [currentReviewPage, setCurrentReviewPage] = useState(0)
+  const [totalReviewPages, setTotalReviewPages] = useState(0)
+  const [reviewsTotal, setReviewsTotal] = useState(0)
 
   // Clear selected schedule and slots when date changes
   useEffect(() => {
@@ -74,6 +82,34 @@ const DispensaryDetailsPage = () => {
 
     fetchDispensaryDetails()
   }, [id, get]) // Now safe to include get since it's memoized with useCallback
+
+  // Fetch reviews when dispensary data is available
+  useEffect(() => {
+    if (id) {
+      fetchReviews(0) // Start with first page
+    }
+  }, [id, get])
+
+  const fetchReviews = async (page = 0) => {
+    try {
+      setReviewsLoading(true)
+      setReviewsError(null)
+      const url = buildUrl(API_CONFIG.ENDPOINTS.DISPENSARY.REVIEWS(id))
+      const response = await get(`${url}?page=${page}&size=5`) // 5 reviews per page
+      
+      if (response && response.content) {
+        setReviews(response.content)
+        setCurrentReviewPage(response.number)
+        setTotalReviewPages(response.totalPages)
+        setReviewsTotal(response.totalElements)
+      }
+    } catch (err) {
+      setReviewsError('Failed to fetch reviews')
+      console.error('Error fetching reviews:', err)
+    } finally {
+      setReviewsLoading(false)
+    }
+  }
 
   const fetchSlots = async (scheduleId) => {
     try {
@@ -176,6 +212,68 @@ const DispensaryDetailsPage = () => {
   const isDoctorAvailableOnSelectedDate = (doctorDay, selectedDate) => {
     const selectedDayOfWeek = getSelectedDateDayOfWeek(selectedDate)
     return doctorDay === selectedDayOfWeek
+  }
+
+  // Helper functions for reviews
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const renderStars = (rating, size = 'text-base') => {
+    const stars = []
+    const fullStars = Math.floor(rating)
+    const hasHalfStar = rating % 1 !== 0
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<FaStar key={`full-${i}`} className={`text-yellow-400 ${size}`} />)
+    }
+
+    if (hasHalfStar) {
+      stars.push(<FaStar key="half" className={`text-yellow-400 ${size} opacity-50`} />)
+    }
+
+    const emptyStars = 5 - Math.ceil(rating)
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<FaStar key={`empty-${i}`} className={`text-gray-300 ${size}`} />)
+    }
+
+    return stars
+  }
+
+  const getCategoryIcon = (category) => {
+    switch (category) {
+      case 'cleanliness':
+        return <FaUserShield className="text-blue-500" />
+      case 'staffSupport':
+        return <FaUsers className="text-green-500" />
+      case 'accessibility':
+        return <FaAccessibleIcon className="text-purple-500" />
+      default:
+        return <FaStar className="text-yellow-500" />
+    }
+  }
+
+  const getCategoryLabel = (category) => {
+    switch (category) {
+      case 'cleanliness':
+        return 'Cleanliness'
+      case 'staffSupport':
+        return 'Staff Support'
+      case 'accessibility':
+        return 'Accessibility'
+      default:
+        return category
+    }
+  }
+
+  const handleReviewPageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalReviewPages) {
+      fetchReviews(newPage)
+    }
   }
 
   if (loading) {
@@ -470,6 +568,157 @@ const DispensaryDetailsPage = () => {
                 </div>
               </div>
             )}
+
+            {/* Reviews Section */}
+            <div className="mt-12">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold">Patient Reviews</h2>
+                {reviewsTotal > 0 && (
+                  <span className="text-gray-600 text-sm">
+                    {reviewsTotal} review{reviewsTotal !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+
+              {reviewsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                  <span className="ml-3 text-gray-600">Loading reviews...</span>
+                </div>
+              ) : reviewsError ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                  <p className="text-red-600">{reviewsError}</p>
+                  <button 
+                    onClick={() => fetchReviews(0)}
+                    className="mt-2 text-red-600 hover:text-red-700 underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+                  <FaStar className="text-gray-300 text-4xl mx-auto mb-4" />
+                  <p className="text-gray-600 text-lg mb-2">No reviews yet</p>
+                  <p className="text-gray-500 text-sm">Be the first to leave a review after your appointment!</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-6">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                        {/* Review Header */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center">
+                            <div className="bg-primary-100 rounded-full p-3 mr-4">
+                              <FaUser className="text-primary-600 text-lg" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900">
+                                {review.anonymous ? 'Anonymous Patient' : review.patientName || 'Patient'}
+                              </h4>
+                              <p className="text-gray-500 text-sm">{formatDate(review.createdAt)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="flex items-center mr-2">
+                              {renderStars(review.overallRating)}
+                            </div>
+                            <span className="text-lg font-semibold text-gray-700">
+                              {review.overallRating.toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Detailed Ratings */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center">
+                              {getCategoryIcon('cleanliness')}
+                              <span className="ml-2 text-sm font-medium">Cleanliness</span>
+                            </div>
+                            <div className="flex items-center">
+                              {renderStars(review.cleanliness, 'text-sm')}
+                              <span className="ml-1 text-sm text-gray-600">({review.cleanliness})</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center">
+                              {getCategoryIcon('staffSupport')}
+                              <span className="ml-2 text-sm font-medium">Staff Support</span>
+                            </div>
+                            <div className="flex items-center">
+                              {renderStars(review.staffSupport, 'text-sm')}
+                              <span className="ml-1 text-sm text-gray-600">({review.staffSupport})</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center">
+                              {getCategoryIcon('accessibility')}
+                              <span className="ml-2 text-sm font-medium">Accessibility</span>
+                            </div>
+                            <div className="flex items-center">
+                              {renderStars(review.accessibility, 'text-sm')}
+                              <span className="ml-1 text-sm text-gray-600">({review.accessibility})</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Comment */}
+                        {review.comment && (
+                          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                            <div className="flex">
+                              <FaQuoteLeft className="text-blue-400 text-lg mr-3 mt-1 flex-shrink-0" />
+                              <p className="text-gray-700 italic leading-relaxed">{review.comment}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalReviewPages > 1 && (
+                    <div className="flex items-center justify-center mt-8 space-x-4">
+                      <button
+                        onClick={() => handleReviewPageChange(currentReviewPage - 1)}
+                        disabled={currentReviewPage === 0}
+                        className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <FaChevronLeft className="mr-2" />
+                        Previous
+                      </button>
+
+                      <div className="flex items-center space-x-2">
+                        {Array.from({ length: totalReviewPages }, (_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleReviewPageChange(index)}
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                              index === currentReviewPage
+                                ? 'bg-primary-600 text-white'
+                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {index + 1}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => handleReviewPageChange(currentReviewPage + 1)}
+                        disabled={currentReviewPage === totalReviewPages - 1}
+                        className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Next
+                        <FaChevronRight className="ml-2" />
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 
