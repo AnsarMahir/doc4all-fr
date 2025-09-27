@@ -57,10 +57,11 @@ const PatientReviews = () => {
     const statusPromises = bookings.map(async (booking) => {
       try {
         const response = await get(buildUrl(API_CONFIG.ENDPOINTS.PATIENT.CHECK_REVIEWABLE(booking.bookingId)));
+        console.log(`Reviewable status for booking ${booking.bookingId}:`, response); // Debug log
         return {
           bookingId: booking.bookingId,
-          doctorReviewable: response.Doctorreviewable || false,
-          dispensaryReviewable: response.Dispensaryreviewable || false
+          doctorReviewable: response.doctorreviewable || false,
+          dispensaryReviewable: response.dispensaryreviewable || false
         };
       } catch (err) {
         console.error(`Error fetching reviewable status for booking ${booking.bookingId}:`, err);
@@ -83,6 +84,7 @@ const PatientReviews = () => {
       };
     });
     
+    console.log('Final reviewable status map:', statusMap); // Debug log
     setReviewableStatus(statusMap);
   };
 
